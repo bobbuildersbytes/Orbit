@@ -421,9 +421,20 @@ function renderUsers(users) {
     let card = existingCards.get(String(u.userId));
     const isBusy = !!u.isBusy;
 
+    // Calculate distance
+    let distanceText = '';
+    if (lastLat && lastLon && u.lat && u.lon) {
+      const distKm = getDistanceFromLatLonInKm(lastLat, lastLon, u.lat, u.lon);
+      if (distKm < 1) {
+        distanceText = `<span class="distance-badge">${Math.round(distKm * 1000)}m away</span>`;
+      } else {
+        distanceText = `<span class="distance-badge">${distKm.toFixed(1)}km away</span>`;
+      }
+    }
+
     // HTML content generator
-    const generateInnerHTML = (user, busy) => `
-      <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge">🔴 Busy</span>' : ""}</div>
+    const generateInnerHTML = (user, busy, distance) => `
+      <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge">🔴 Busy</span>' : ""}${distance}</div>
       <div class="muted">${user.email}</div>
       <div class="actions">
         <button class="small" data-action="center">Center</button>
@@ -438,7 +449,7 @@ function renderUsers(users) {
 
     if (card) {
       // UPDATE existing card
-      const newHTML = generateInnerHTML(u, isBusy);
+      const newHTML = generateInnerHTML(u, isBusy, distanceText);
       if (card.innerHTML !== newHTML) {
         card.innerHTML = newHTML;
         attachCardListeners(card, u);
@@ -455,7 +466,7 @@ function renderUsers(users) {
       card = document.createElement("div");
       card.className = "user-card" + (isBusy ? " busy-user" : "");
       card.dataset.userId = u.userId;
-      card.innerHTML = generateInnerHTML(u, isBusy);
+      card.innerHTML = generateInnerHTML(u, isBusy, distanceText);
       usersList.appendChild(card);
       attachCardListeners(card, u);
     }

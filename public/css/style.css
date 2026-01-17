@@ -1247,6 +1247,28 @@
     }
   }
 
+  /* Badge Styles */
+  .busy-badge,
+  .distance-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  .busy-badge {
+    background: #fecaca;
+    color: #991b1b;
+  }
+
+  .distance-badge {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
   /* Decorative Background Orbs */
 .orb {
   position: absolute;
