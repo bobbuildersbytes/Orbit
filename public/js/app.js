@@ -391,40 +391,90 @@ function renderUsers(users) {
     usersList.innerHTML = '<div class="muted">No one else is available.</div>';
     return;
   }
-  usersList.innerHTML = "";
+
+  // Remove "No one else is available" message if it exists and we have users
+  if (
+    usersList.querySelector(".muted") &&
+    usersList.children.length === 1 &&
+    usersList.children[0].textContent.includes("No one else")
+  ) {
+    usersList.innerHTML = "";
+  }
+
+  // 1. Mark all existing cards for potential removal
+  const existingCards = new Map();
+  usersList.querySelectorAll(".user-card").forEach((card) => {
+    existingCards.set(card.dataset.userId, card);
+  });
+
   filtered.forEach((u) => {
-    const card = document.createElement("div");
-    const busyClass = u.isBusy ? " busy-user" : "";
-    card.className = "user-card" + busyClass;
-    card.innerHTML = `
-      <div><strong>${u.name || u.email}</strong>${u.isBusy ? ' <span class="busy-badge">🔴 Busy</span>' : ''}</div>
-      <div class="muted">${u.email}</div>
+    let card = existingCards.get(String(u.userId));
+    const isBusy = !!u.isBusy;
+
+    // HTML content generator
+    const generateInnerHTML = (user, busy) => `
+      <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge">🔴 Busy</span>' : ""}</div>
+      <div class="muted">${user.email}</div>
       <div class="actions">
         <button class="small" data-action="center">Center</button>
         ${
-          u.isBusy
+          busy
             ? '<button class="small secondary" disabled title="User is busy - cannot page" style="opacity: 0.5; cursor: not-allowed;">Page</button>'
             : '<button class="small secondary" data-action="page">Page</button>'
         }
         <button class="small secondary" data-action="remove" style="background: #dc2626; color: white;">Remove</button>
       </div>
     `;
-    const centerBtn = card.querySelector('[data-action="center"]');
-    const pageBtn = card.querySelector('[data-action="page"]');
-    const removeBtn = card.querySelector('[data-action="remove"]');
 
+    if (card) {
+      // UPDATE existing card
+      const newHTML = generateInnerHTML(u, isBusy);
+      if (card.innerHTML !== newHTML) {
+        card.innerHTML = newHTML;
+        attachCardListeners(card, u);
+      }
+
+      // Update class
+      if (isBusy) card.classList.add("busy-user");
+      else card.classList.remove("busy-user");
+
+      // Mark as kept
+      existingCards.delete(String(u.userId));
+    } else {
+      // CREATE new card
+      card = document.createElement("div");
+      card.className = "user-card" + (isBusy ? " busy-user" : "");
+      card.dataset.userId = u.userId;
+      card.innerHTML = generateInnerHTML(u, isBusy);
+      usersList.appendChild(card);
+      attachCardListeners(card, u);
+    }
+  });
+
+  // Remove stale cards
+  existingCards.forEach((card) => {
+    card.remove();
+  });
+}
+
+function attachCardListeners(card, u) {
+  const centerBtn = card.querySelector('[data-action="center"]');
+  const pageBtn = card.querySelector('[data-action="page"]');
+  const removeBtn = card.querySelector('[data-action="remove"]');
+
+  if (centerBtn) {
     centerBtn.addEventListener("click", () => {
       if (u.lat && u.lon) mapUI.centerOn(u.lat, u.lon);
     });
-    if (pageBtn) {
-      pageBtn.addEventListener("click", () => pageUser(u.userId));
-    }
+  }
+  if (pageBtn) {
+    pageBtn.addEventListener("click", () => pageUser(u.userId));
+  }
+  if (removeBtn) {
     removeBtn.addEventListener("click", () =>
       removeFriend(u.userId, u.name || u.email),
     );
-
-    usersList.appendChild(card);
-  });
+  }
 }
 
 async function removeFriend(friendId, friendName) {
