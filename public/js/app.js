@@ -81,11 +81,7 @@ function wireEvents() {
       sidebar.classList.add("collapsed");
       desktopSidebarToggle.classList.remove("hidden");
     }
-    setTimeout(() => {
-      if (mapUI && mapUI.map) {
-        mapUI.map.invalidateSize();
-      }
-    }, 300);
+    // Map invalidation is now handled by ResizeObserver in bootstrap()
   }
 
   // Sidebar Open (Desktop)
@@ -103,7 +99,18 @@ function wireEvents() {
   const sidebarTitle = document.getElementById("sidebar-title");
   const activitiesPanel = document.getElementById("activities-panel");
   const profilePanel = document.getElementById("profile-panel");
-
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      window.location.href = "/logout";
+    });
+  }
+  const logoutBtnMobile = document.getElementById("logout-btn-mobile");
+  if (logoutBtnMobile) {
+    logoutBtnMobile.addEventListener("click", () => {
+      window.location.href = "/logout";
+    });
+  }
   desktopNavIcons.forEach((btn) => {
     btn.addEventListener("click", () => {
       // 1. Update Active State
@@ -167,6 +174,17 @@ function wireEvents() {
   });
 
   startLocationWatch();
+
+  // ResizeObserver for smooth map transitions
+  const mapContainer = document.getElementById("map");
+  if (mapContainer) {
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapUI && mapUI.map) {
+        mapUI.map.invalidateSize();
+      }
+    });
+    resizeObserver.observe(mapContainer);
+  }
 }
 
 let lastLat = null;
@@ -189,7 +207,9 @@ function startLocationWatch() {
     (err) => {
       console.error("Location watch error:", err.message, err.code);
       if (err.code === 1) {
-        console.warn("Location permission denied. Enable location access in browser settings.");
+        console.warn(
+          "Location permission denied. Enable location access in browser settings.",
+        );
       } else if (err.code === 2) {
         console.warn("Location unavailable. Check device location settings.");
       } else if (err.code === 3) {
@@ -269,13 +289,19 @@ function syncAvailabilityUI(available) {
     availableBtn.classList.remove("hidden-state");
     availableBtn.classList.add("shared-state");
     // Show Busy Button
-    if (busyBtn) busyBtn.classList.remove("hidden");
+    if (busyBtn) {
+      busyBtn.classList.remove("hidden");
+      busyBtn.disabled = false;
+    }
   } else {
     availableBtn.textContent = "Location: Hidden";
     availableBtn.classList.remove("shared-state");
     availableBtn.classList.add("hidden-state");
-    // Hide and Reset Busy Button (local only? server persists it, but doesn't matter if hidden)
-    if (busyBtn) busyBtn.classList.add("hidden");
+    // Disable and Reset Busy Button
+    if (busyBtn) {
+      busyBtn.classList.remove("hidden");
+      busyBtn.disabled = true;
+    }
   }
 }
 
@@ -368,15 +394,16 @@ function renderUsers(users) {
   usersList.innerHTML = "";
   filtered.forEach((u) => {
     const card = document.createElement("div");
-    card.className = "user-card";
+    const busyClass = u.isBusy ? " busy-user" : "";
+    card.className = "user-card" + busyClass;
     card.innerHTML = `
-      <div><strong>${u.name || u.email}</strong></div>
+      <div><strong>${u.name || u.email}</strong>${u.isBusy ? ' <span class="busy-badge">🔴 Busy</span>' : ''}</div>
       <div class="muted">${u.email}</div>
       <div class="actions">
         <button class="small" data-action="center">Center</button>
         ${
           u.isBusy
-            ? '<button class="small secondary" disabled title="User is busy">Busy</button>'
+            ? '<button class="small secondary" disabled title="User is busy - cannot page" style="opacity: 0.5; cursor: not-allowed;">Page</button>'
             : '<button class="small secondary" data-action="page">Page</button>'
         }
         <button class="small secondary" data-action="remove" style="background: #dc2626; color: white;">Remove</button>
@@ -385,39 +412,41 @@ function renderUsers(users) {
     const centerBtn = card.querySelector('[data-action="center"]');
     const pageBtn = card.querySelector('[data-action="page"]');
     const removeBtn = card.querySelector('[data-action="remove"]');
-    
+
     centerBtn.addEventListener("click", () => {
       if (u.lat && u.lon) mapUI.centerOn(u.lat, u.lon);
     });
     if (pageBtn) {
       pageBtn.addEventListener("click", () => pageUser(u.userId));
     }
-    removeBtn.addEventListener("click", () => removeFriend(u.userId, u.name || u.email));
-    
+    removeBtn.addEventListener("click", () =>
+      removeFriend(u.userId, u.name || u.email),
+    );
+
     usersList.appendChild(card);
   });
 }
 
 async function removeFriend(friendId, friendName) {
   if (!confirm(`Remove ${friendName} from your friends?`)) return;
-  
+
   try {
-    const res = await fetch('/remove-friend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const res = await fetch("/remove-friend", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `friendId=${friendId}`,
     });
-    
+
     if (res.ok) {
-      alert('Friend removed');
+      alert("Friend removed");
       // Reload to update the friends list
       window.location.reload();
     } else {
-      alert('Failed to remove friend');
+      alert("Failed to remove friend");
     }
   } catch (err) {
-    console.error('Error removing friend:', err);
-    alert('Error removing friend');
+    console.error("Error removing friend:", err);
+    alert("Error removing friend");
   }
 }
 
@@ -445,9 +474,9 @@ function syncBusyUI() {
   if (!busyBtn) return;
 
   if (isAvailable) {
-    busyBtn.classList.remove("hidden");
+    busyBtn.disabled = false;
   } else {
-    busyBtn.classList.add("hidden");
+    busyBtn.disabled = true;
   }
 
   if (isBusy) {
@@ -461,6 +490,25 @@ function syncBusyUI() {
     busyBtn.classList.remove("hidden-state");
     busyBtn.classList.add("shared-state");
   }
+}
+
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
 }
 
 bootstrap();
