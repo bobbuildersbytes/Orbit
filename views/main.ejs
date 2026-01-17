@@ -79,7 +79,7 @@
                 <h3>Activities</h3>
               </div>
               <div id="users-section">
-                <div class="section-title">Friends Online</div>
+                <div class="section-title">Friends</div>
                 <div id="users-list"></div>
               </div>
               <div class="spacer"></div>
@@ -252,6 +252,7 @@
                     Change Profile Picture
                   </button>
                 </form>
+<<<<<<< HEAD
                 <canvas
                   id="crop-canvas"
                   style="
@@ -280,6 +281,12 @@
                   >
                     Cancel
                   </button>
+=======
+                <canvas id="crop-canvas" style="display: none; max-width: 100%; margin-top: var(--space-3); border: 1px solid #ccc;"></canvas>
+                <div id="crop-controls" style="display: none; gap: var(--space-2); margin-top: var(--space-2);">
+                  <button type="button" id="save-cropped-pic" style="width: 100%;">Save</button>
+                  <button type="button" id="cancel-crop" class="secondary" style="width: 100%;">Cancel</button>
+>>>>>>> 1ab04d6d8c85d08873d43d4d4633ad9909dfda02
                 </div>
               </div>
 
@@ -386,10 +393,17 @@
         if (file) {
           const reader = new FileReader();
           reader.onload = (event) => {
+<<<<<<< HEAD
             cropCanvas.style.display = "block";
             cropControls.style.display = "block";
             choosePicBtn.style.display = "none";
 
+=======
+            cropCanvas.style.display = 'block';
+            cropControls.style.display = 'flex';
+            choosePicBtn.style.display = 'none';
+            
+>>>>>>> 1ab04d6d8c85d08873d43d4d4633ad9909dfda02
             const img = new Image();
             img.onload = () => {
               const canvas = cropCanvas;

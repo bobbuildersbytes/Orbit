@@ -1247,6 +1247,28 @@
     }
   }
 
+  /* Badge Styles */
+  .busy-badge,
+  .distance-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  .busy-badge {
+    background: #fecaca;
+    color: #991b1b;
+  }
+
+  .distance-badge {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
   /* Decorative Background Orbs */
 .orb {
   position: absolute;
@@ -1887,4 +1909,676 @@
     width: 60px;
     height: 30px;
   }
+}
+/* ============================================
+   ENHANCED MAP & SIDEBAR UI
+   Add this to the end of your existing styles.css
+   ============================================ */
+
+/* ============================================
+   GLASSMORPHIC SIDEBAR WITH DARK SPACE THEME
+   ============================================ */
+
+   #app-view {
+    background: transparent !important;
+    position: relative;
+    height: 100vh;
+  }
+  
+  #sidebar {
+    width: 400px;
+    background: rgba(8, 12, 22, 0.85) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border-right: 1px solid rgba(96, 165, 250, 0.15) !important;
+    box-shadow: 
+      4px 0 60px rgba(0, 0, 0, 0.5),
+      inset 0 0 100px rgba(96, 165, 250, 0.03) !important;
+    transition: all var(--transition-smooth);
+  }
+  
+  #sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, 
+      rgba(96, 165, 250, 0.08) 0%, 
+      transparent 50%,
+      rgba(168, 85, 247, 0.05) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* Sidebar Nav Rail - Space Theme */
+  .sidebar-nav {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border-right: 1px solid rgba(96, 165, 250, 0.12) !important;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .sidebar-nav::after {
+    background: linear-gradient(to bottom, 
+      rgba(96, 165, 250, 0.3), 
+      rgba(168, 85, 247, 0.3), 
+      rgba(96, 165, 250, 0.3)) !important;
+  }
+  
+  /* Enhanced Nav Icons with Solid Backgrounds for Emoji Visibility */
+  .nav-icon {
+    background: #1a1f2e !important;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+    position: relative;
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.4),
+      inset 0 0 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .nav-icon::before {
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 1), 
+      rgba(168, 85, 247, 1));
+    opacity: 0;
+  }
+  
+  .nav-icon:hover {
+    background: #252d42 !important;
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 
+      0 8px 24px rgba(96, 165, 250, 0.5),
+      inset 0 0 30px rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.5);
+  }
+  
+  .nav-icon.active {
+    color: white;
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 0.3), 
+      rgba(168, 85, 247, 0.3)) !important;
+    box-shadow: 
+      0 8px 32px rgba(96, 165, 250, 0.6),
+      0 0 40px rgba(96, 165, 250, 0.4),
+      inset 0 0 40px rgba(96, 165, 250, 0.15);
+    border-color: rgba(96, 165, 250, 0.6);
+  }
+  
+  .nav-icon.active::before {
+    opacity: 0.7;
+  }
+  
+  /* Sidebar Header - Dark Glass */
+  .sidebar-header {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .sidebar-header h2 {
+    color: white !important;
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 1), 
+      rgba(168, 85, 247, 1)) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.5));
+  }
+  
+  /* Sidebar Content */
+  .sidebar-content {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Enhanced Scrollbar - Neon Glow */
+  .sidebar-content::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  .sidebar-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-full);
+    margin: 8px 0;
+  }
+  
+  .sidebar-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, 
+      rgba(96, 165, 250, 0.8), 
+      rgba(168, 85, 247, 0.8));
+    border-radius: var(--radius-full);
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 
+      0 0 10px rgba(96, 165, 250, 0.5),
+      inset 0 0 6px rgba(255, 255, 255, 0.2);
+  }
+  
+  .sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, 
+      rgba(96, 165, 250, 1), 
+      rgba(168, 85, 247, 1));
+    box-shadow: 
+      0 0 20px rgba(96, 165, 250, 0.8),
+      inset 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Panel Section Headers */
+  .panel-header h3 {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  
+  .section-title {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 600;
+  }
+  
+  /* ============================================
+     ENHANCED CARDS - FUTURISTIC DESIGN
+     ============================================ */
+  
+  .user-card,
+  .suggestion-card {
+    background: #1a1f2e !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(96, 165, 250, 0.2) !important;
+    border-radius: 16px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 0 40px rgba(96, 165, 250, 0.03);
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .user-card::before,
+  .suggestion-card::before {
+    background: linear-gradient(90deg, 
+      rgba(96, 165, 250, 0.6), 
+      rgba(168, 85, 247, 0.6)) !important;
+    height: 2px;
+  }
+  
+  .user-card::after,
+  .suggestion-card::after {
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 0.15), 
+      rgba(168, 85, 247, 0.15)) !important;
+    opacity: 0;
+  }
+  
+  .user-card:hover,
+  .suggestion-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+      0 20px 60px rgba(96, 165, 250, 0.3),
+      0 0 80px rgba(96, 165, 250, 0.2),
+      inset 0 0 60px rgba(96, 165, 250, 0.05);
+    border-color: rgba(96, 165, 250, 0.4);
+  }
+  
+  .user-card:hover::before,
+  .suggestion-card:hover::before {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.6);
+  }
+  
+  .user-card:hover::after,
+  .suggestion-card:hover::after {
+    opacity: 1;
+  }
+  
+  .user-card strong,
+  .suggestion-card strong {
+    color: white !important;
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 1), 
+      rgba(168, 85, 247, 1)) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.5));
+  }
+  
+  .muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  /* Busy User Badge */
+  .busy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fca5a5;
+    animation: pulse-glow-red 2s infinite;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+  
+  @keyframes pulse-glow-red {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+  }
+  
+  /* ============================================
+     ENHANCED BUTTONS - GLOWING EFFECTS
+     ============================================ */
+  
+  button {
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 0.9), 
+      rgba(168, 85, 247, 0.9)) !important;
+    box-shadow: 
+      0 8px 24px rgba(96, 165, 250, 0.4),
+      inset 0 0 30px rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  button::before {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.3) 0%, 
+      transparent 100%);
+  }
+  
+  button:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 
+      0 12px 40px rgba(96, 165, 250, 0.6),
+      0 0 60px rgba(96, 165, 250, 0.4),
+      inset 0 0 40px rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  button.secondary {
+    background: #1a1f2e !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 0 20px rgba(96, 165, 250, 0.05);
+  }
+  
+  button.secondary:hover {
+    background: #252d42 !important;
+    border-color: rgba(96, 165, 250, 0.5);
+    box-shadow: 
+      0 8px 32px rgba(96, 165, 250, 0.4),
+      inset 0 0 30px rgba(96, 165, 250, 0.1);
+  }
+  
+  button.small {
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+  
+  button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* ============================================
+     PRESENCE BUTTONS - ENHANCED STATES
+     ============================================ */
+  
+  #available-btn,
+  #busy-btn {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+  }
+  
+  /* Hidden State - Dark Gray */
+  #available-btn.hidden-state {
+    background: rgba(71, 85, 105, 0.3) !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    border-color: rgba(71, 85, 105, 0.4);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 0 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  #available-btn.hidden-state:hover {
+    background: rgba(71, 85, 105, 0.5) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(71, 85, 105, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      inset 0 0 30px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Shared State - Bright Blue Glow */
+  #available-btn.shared-state {
+    background: linear-gradient(135deg, 
+      rgba(96, 165, 250, 1), 
+      rgba(59, 130, 246, 1)) !important;
+    color: white !important;
+    border-color: rgba(147, 197, 253, 0.5);
+    box-shadow: 
+      0 8px 32px rgba(59, 130, 246, 0.6),
+      0 0 60px rgba(59, 130, 246, 0.4),
+      inset 0 0 40px rgba(255, 255, 255, 0.15);
+    animation: pulse-glow-blue 2s infinite;
+  }
+  
+  #available-btn.shared-state::before {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.4) 0%, 
+      transparent 100%);
+  }
+  
+  #available-btn.shared-state:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 
+      0 12px 48px rgba(59, 130, 246, 0.8),
+      0 0 80px rgba(59, 130, 246, 0.6),
+      inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+  
+  @keyframes pulse-glow-blue {
+    0%, 100% {
+      box-shadow: 
+        0 8px 32px rgba(59, 130, 246, 0.6),
+        0 0 60px rgba(59, 130, 246, 0.4),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+      box-shadow: 
+        0 12px 48px rgba(59, 130, 246, 0.8),
+        0 0 80px rgba(59, 130, 246, 0.6),
+        inset 0 0 50px rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  /* Busy State - Orange/Red Glow */
+  #busy-btn.busy-state {
+    background: linear-gradient(135deg, 
+      rgba(249, 115, 22, 1), 
+      rgba(239, 68, 68, 1)) !important;
+    color: white !important;
+    border-color: rgba(252, 165, 165, 0.5);
+    box-shadow: 
+      0 8px 32px rgba(239, 68, 68, 0.6),
+      0 0 60px rgba(239, 68, 68, 0.4),
+      inset 0 0 40px rgba(255, 255, 255, 0.15);
+    animation: pulse-glow-orange 2s infinite;
+  }
+  
+  #busy-btn.busy-state:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 
+      0 12px 48px rgba(239, 68, 68, 0.8),
+      0 0 80px rgba(239, 68, 68, 0.6),
+      inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+  
+  @keyframes pulse-glow-orange {
+    0%, 100% {
+      box-shadow: 
+        0 8px 32px rgba(239, 68, 68, 0.6),
+        0 0 60px rgba(239, 68, 68, 0.4),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+      box-shadow: 
+        0 12px 48px rgba(239, 68, 68, 0.8),
+        0 0 80px rgba(239, 68, 68, 0.6),
+        inset 0 0 50px rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  /* Available State - Green Subtle */
+  #busy-btn.shared-state {
+    background: linear-gradient(135deg, 
+      rgba(34, 197, 94, 0.9), 
+      rgba(22, 163, 74, 0.9)) !important;
+    color: white !important;
+    border-color: rgba(134, 239, 172, 0.5);
+    box-shadow: 
+      0 8px 32px rgba(34, 197, 94, 0.4),
+      0 0 60px rgba(34, 197, 94, 0.3),
+      inset 0 0 40px rgba(255, 255, 255, 0.15);
+  }
+  
+  #busy-btn.shared-state:hover {
+    box-shadow: 
+      0 12px 48px rgba(34, 197, 94, 0.6),
+      0 0 80px rgba(34, 197, 94, 0.4),
+      inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+  
+  /* ============================================
+     MAP CONTAINER - DARK THEME
+     ============================================ */
+  
+  #main-content {
+    background: transparent !important;
+    position: relative;
+  }
+  
+  #map {
+    border-radius: 0 !important;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+    position: relative;
+  }
+  
+  /* Map controls styling for dark theme */
+  .leaflet-control-zoom a {
+    background: rgba(8, 12, 22, 0.85) !important;
+    backdrop-filter: blur(20px);
+    color: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(96, 165, 250, 0.2) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  .leaflet-control-zoom a:hover {
+    background: rgba(96, 165, 250, 0.15) !important;
+    color: white !important;
+    border-color: rgba(96, 165, 250, 0.4) !important;
+  }
+  
+  /* ============================================
+     DESKTOP FAB - ENHANCED GLOW
+     ============================================ */
+  
+  .desktop-fab {
+    background: #1a1f2e !important;
+    backdrop-filter: blur(40px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 60px rgba(96, 165, 250, 0.3),
+      inset 0 0 40px rgba(96, 165, 250, 0.05);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .desktop-fab:hover {
+    background: #252d42 !important;
+    transform: scale(1.15) rotate(10deg);
+    box-shadow: 
+      0 12px 48px rgba(96, 165, 250, 0.6),
+      0 0 80px rgba(96, 165, 250, 0.5),
+      inset 0 0 60px rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.6);
+    color: white;
+  }
+  
+  /* ============================================
+     PROFILE SECTION
+     ============================================ */
+  
+  #profile-panel {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  #user-info {
+    color: rgba(255, 255, 255, 0.7) !important;
+    padding: 12px 16px;
+    background: rgba(96, 165, 250, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  #logout-btn {
+    width: 100%;
+    background: linear-gradient(135deg, 
+      rgba(239, 68, 68, 0.9), 
+      rgba(220, 38, 38, 0.9)) !important;
+    margin-top: 16px;
+  }
+  
+  #logout-btn:hover {
+    box-shadow: 
+      0 12px 40px rgba(239, 68, 68, 0.6),
+      0 0 60px rgba(239, 68, 68, 0.4) !important;
+  }
+  
+  /* ============================================
+     ACTIVITY SUGGESTIONS - ENHANCED
+     ============================================ */
+  
+  .suggestions-header {
+    padding: 12px;
+    background: #1a1f2e;
+    border-radius: 12px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  .suggestions-header h3 {
+    color: white !important;
+    font-size: 16px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+  
+  /* Activity Cards - Solid backgrounds with gradient overlays */
+  .activity-card {
+    position: relative;
+    overflow: hidden;
+    background: #1a1f2e !important;
+  }
+  
+  .activity-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    opacity: 0.2;
+    z-index: 0;
+  }
+  
+  .activity-card > div {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Ensure emoji icons in activity cards are visible */
+  .activity-card .icon,
+  .activity-card [style*="font-size: 32px"],
+  .activity-card [style*="font-size: 24px"] {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+  
+  /* ============================================
+     LOADING & ERROR STATES
+     ============================================ */
+  
+  .loading-state,
+  .error-state {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    padding: 32px;
+  }
+  
+  .spinner div {
+    border-color: rgba(96, 165, 250, 0.2) !important;
+    border-top-color: rgba(96, 165, 250, 1) !important;
+  }
+  
+  /* ============================================
+     MOBILE RESPONSIVE - DARK THEME
+     ============================================ */
+  
+  @media (max-width: 768px) {
+    #sidebar {
+      background: rgba(8, 12, 22, 0.95) !important;
+      border-top: 1px solid rgba(96, 165, 250, 0.3);
+      box-shadow: 
+        0 -8px 60px rgba(0, 0, 0, 0.8),
+        inset 0 0 100px rgba(96, 165, 250, 0.05);
+    }
+  
+    #bottom-nav {
+      background: rgba(8, 12, 22, 0.95) !important;
+      backdrop-filter: blur(40px);
+      border-top: 1px solid rgba(96, 165, 250, 0.2);
+      box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.5);
+    }
+  
+    .nav-item {
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+  
+    .nav-item.active {
+      color: rgba(96, 165, 250, 1) !important;
+      text-shadow: 0 0 20px rgba(96, 165, 250, 0.8);
+    }
+  
+    .nav-item:hover {
+      color: rgba(96, 165, 250, 0.8) !important;
+    }
+  }
+
+  /* Specific override for the back arrow color */
+#sidebar-close-btn {
+  background: #1a1f2e !important;
+  border: 1px solid rgba(96, 165, 250, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Optional: change the arrow icon color inside the button */
+#sidebar-close-btn i {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Keep a subtle glow only when hovering */
+#sidebar-close-btn:hover {
+  background: #252d42 !important;
+  border-color: rgba(96, 165, 250, 0.5) !important;
+}
+
+#logout-btn {
+  width: fit-content !important;    /* Prevents button from stretching */
+  padding: 8px 20px !important;     /* Makes the button a standard size */
+  margin-left: auto !important;     /* Centers it if in a flex container */
+  margin-right: auto !important;    /* Centers it if in a flex container */
+  display: flex !important;         /* Required for centering */
+  font-size: 13px !important;       /* Slightly smaller text for a cleaner look */
 }
