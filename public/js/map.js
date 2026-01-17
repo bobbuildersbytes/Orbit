@@ -10,7 +10,7 @@ window.mapUI = (function () {
 
   const markers = new Map();
 
-  function createPopupContent(p) {
+  function getPopupContent(p) {
     const profilePic =
       p.profilePicture ||
       'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>';
@@ -96,12 +96,14 @@ window.mapUI = (function () {
         zIndexOffset: 1000,
       }).addTo(map);
       marker.bindPopup(myPopupContent);
+      marker.bringToFront();
       markers.set("me", marker);
     } else {
       const marker = markers.get("me");
       marker.setLatLng([lat, lon]);
       marker.setStyle({ fillColor: color, color: "#9333ea" });
       marker.bindPopup(myPopupContent);
+      marker.bringToFront();
     }
   }
 
