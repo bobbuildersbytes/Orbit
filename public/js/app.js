@@ -385,9 +385,19 @@ function renderUsers(users) {
     (u) => !currentUser || u.userId !== (currentUser._id || currentUser.id),
   );
 
+  // Sort by distance (closest first) if we have our location
+  const sorted = [...filtered].sort((a, b) => {
+    if (!lastLat || !lastLon) return 0;
+    if (!a.lat || !a.lon) return 1;
+    if (!b.lat || !b.lon) return -1;
+    const distA = getDistanceFromLatLonInKm(lastLat, lastLon, a.lat, a.lon);
+    const distB = getDistanceFromLatLonInKm(lastLat, lastLon, b.lat, b.lon);
+    return distA - distB;
+  });
+
   if (!usersList) return;
 
-  if (!filtered.length) {
+  if (!sorted.length) {
     usersList.innerHTML = '<div class="muted">No one else is available.</div>';
     return;
   }
@@ -407,7 +417,7 @@ function renderUsers(users) {
     existingCards.set(card.dataset.userId, card);
   });
 
-  filtered.forEach((u) => {
+  sorted.forEach((u) => {
     let card = existingCards.get(String(u.userId));
     const isBusy = !!u.isBusy;
 
