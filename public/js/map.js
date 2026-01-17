@@ -10,42 +10,18 @@ window.mapUI = (function () {
 
   const markers = new Map();
 
-<<<<<<< HEAD
   function getPopupContent(p) {
-    const name = p.name || p.email || "Unknown";
-    const initial = name.charAt(0).toUpperCase();
-    const busyTag = p.isBusy
-      ? '<br><span style="color:red; font-size: 0.8em;">Busy (DND)</span>'
-      : "";
-
-    let avatarHtml = "";
-    if (p.profilePicture) {
-      avatarHtml = `<img src="/uploads/${p.profilePicture}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px;">`;
-    } else {
-      avatarHtml = `<div style="width: 32px; height: 32px; border-radius: 50%; background: #ccc; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 8px;">${initial}</div>`;
-    }
-
-    return `
-      <div style="display: flex; align-items: center;">
-        ${avatarHtml}
-        <div>
-          <strong>${name}</strong>
-          ${busyTag}
-        </div>
-=======
-  function createPopupContent(p) {
-    const profilePic = p.profilePicture 
-      ? `/uploads/${p.profilePicture}` 
+    const profilePic = p.profilePicture
+      ? `/uploads/${p.profilePicture}`
       : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>';
-    
+
     return `
       <div style="text-align: center; min-width: 120px;">
-        <img src="${profilePic}" alt="${p.name}" 
-             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" 
+        <img src="${profilePic}" alt="${p.name || "User"}"
+             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"
              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><circle cx=%2212%22 cy=%228%22 r=%224%22/><path d=%22M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2%22/></svg>'">
-        <div><strong>${p.name || p.email}</strong></div>
-        ${p.isBusy ? '<div style="color: #ea580c; font-weight: 500;">Busy (DND)</div>' : ''}
->>>>>>> 70b58f4131a5ac1daff111ef75be666a1d55ad3e
+        <div><strong>${p.name || p.email || "Unknown"}</strong></div>
+        ${p.isBusy ? '<div style="color: #ea580c; font-weight: 500;">Busy (DND)</div>' : ""}
       </div>
     `;
   }
@@ -69,22 +45,14 @@ window.mapUI = (function () {
           opacity: 1,
           fillOpacity: 1,
         }).addTo(map);
-<<<<<<< HEAD
-=======
-        
-        const popupContent = createPopupContent(p);
->>>>>>> 70b58f4131a5ac1daff111ef75be666a1d55ad3e
+
         marker.bindPopup(popupContent);
         markers.set(String(p.userId), marker);
       } else {
         const marker = markers.get(String(p.userId));
         marker.setLatLng([p.lat, p.lon]);
         marker.setStyle({ fillColor: color });
-<<<<<<< HEAD
-=======
-        
-        const popupContent = createPopupContent(p);
->>>>>>> 70b58f4131a5ac1daff111ef75be666a1d55ad3e
+
         marker.bindPopup(popupContent);
       }
     });
