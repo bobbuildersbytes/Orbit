@@ -189,7 +189,7 @@
               <div style="text-align: center; margin-bottom: var(--space-4);">
                 <img 
                   id="current-profile-pic"
-                  src="<%= user.profilePicture ? '/uploads/' + user.profilePicture : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><circle cx=%2212%22 cy=%228%22 r=%224%22/><path d=%22M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2%22/></svg>' %>"
+                  src="<%= user.profilePicture || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><circle cx=%2212%22 cy=%228%22 r=%224%22/><path d=%22M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2%22/></svg>' %>"
                   alt="Profile Picture"
                   style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #3b82f6; margin-bottom: var(--space-2);"
                 />
@@ -361,7 +361,7 @@
               console.log('Response data:', data);
               
               if (res.ok) {
-                currentProfilePic.src = '/uploads/' + data.filename + '?t=' + Date.now();
+                currentProfilePic.src = data.base64;
                 resetCropUI();
                 alert('Profile picture updated!');
               } else {
