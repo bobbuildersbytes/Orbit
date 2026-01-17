@@ -8,7 +8,10 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css"
+    />
     <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
@@ -47,6 +50,13 @@
           </button>
           <button class="nav-icon" data-target="profile-panel" title="Profile">
             <span>👤</span>
+          </button>
+          <button
+            class="nav-icon"
+            data-target="suggestions-panel"
+            title="Suggestions"
+          >
+            <span>💡</span>
           </button>
         </div>
 
@@ -117,10 +127,33 @@
                   <button type="submit" class="small">Add</button>
                 </form>
               </div>
+            </div>
 
-              <div class="spacer"></div>
+            <!-- Suggestions Panel -->
+            <div class="panel-section hidden" id="suggestions-panel">
+              <div class="panel-header mobile-only">
+                <h3>Suggestions</h3>
+              </div>
               <div id="suggestions-section">
-                <div class="section-title">Suggestions</div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: var(--space-2);
+                  "
+                >
+                  <div class="section-title" style="margin-bottom: 0">
+                    AI Suggestions
+                  </div>
+                  <button
+                    id="refresh-suggestions-btn"
+                    class="icon-btn"
+                    title="Refresh Suggestions"
+                  >
+                    🔄
+                  </button>
+                </div>
                 <div id="suggestions-list">
                   <div class="muted">
                     Suggestions logic is currently initializing...
@@ -186,26 +219,67 @@
                 <button id="logout-btn" class="secondary small">Logout</button>
               </div>
 
-              <div style="text-align: center; margin-bottom: var(--space-4);">
-                <img 
+              <div style="text-align: center; margin-bottom: var(--space-4)">
+                <img
                   id="current-profile-pic"
                   src="<%= user.profilePicture || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><circle cx=%2212%22 cy=%228%22 r=%224%22/><path d=%22M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2%22/></svg>' %>"
                   alt="Profile Picture"
-                  style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #3b82f6; margin-bottom: var(--space-2);"
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 3px solid #3b82f6;
+                    margin-bottom: var(--space-2);
+                  "
                 />
-                <form id="update-profile-pic-form" style="margin-top: var(--space-3);">
-                  <input 
-                    type="file" 
-                    id="new-profile-picture" 
-                    accept="image/*" 
-                    style="display: none;"
+                <form
+                  id="update-profile-pic-form"
+                  style="margin-top: var(--space-3)"
+                >
+                  <input
+                    type="file"
+                    id="new-profile-picture"
+                    accept="image/*"
+                    style="display: none"
                   />
-                  <button type="button" id="choose-pic-btn" class="secondary" style="width: 100%;">Change Profile Picture</button>
+                  <button
+                    type="button"
+                    id="choose-pic-btn"
+                    class="secondary"
+                    style="width: 100%"
+                  >
+                    Change Profile Picture
+                  </button>
                 </form>
-                <canvas id="crop-canvas" style="display: none; max-width: 100%; margin-top: var(--space-3); border: 1px solid #ccc;"></canvas>
-                <div id="crop-controls" style="display: none; margin-top: var(--space-2);">
-                  <button type="button" id="save-cropped-pic" style="width: 100%;">Save</button>
-                  <button type="button" id="cancel-crop" class="secondary" style="width: 100%; margin-top: var(--space-2);">Cancel</button>
+                <canvas
+                  id="crop-canvas"
+                  style="
+                    display: none;
+                    max-width: 100%;
+                    margin-top: var(--space-3);
+                    border: 1px solid #ccc;
+                  "
+                ></canvas>
+                <div
+                  id="crop-controls"
+                  style="display: none; margin-top: var(--space-2)"
+                >
+                  <button
+                    type="button"
+                    id="save-cropped-pic"
+                    style="width: 100%"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    id="cancel-crop"
+                    class="secondary"
+                    style="width: 100%; margin-top: var(--space-2)"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
 
@@ -268,6 +342,10 @@
             <span class="icon">👤</span>
             <span>Profile</span>
           </button>
+          <button class="nav-item" data-target="suggestions-panel">
+            <span class="icon">💡</span>
+            <span>Ideas</span>
+          </button>
         </nav>
       </main>
 
@@ -291,40 +369,40 @@
     <script>
       // Profile Picture Update Logic
       let profileCropper = null;
-      const choosePicBtn = document.getElementById('choose-pic-btn');
-      const newProfilePicInput = document.getElementById('new-profile-picture');
-      const cropCanvas = document.getElementById('crop-canvas');
-      const cropControls = document.getElementById('crop-controls');
-      const saveCroppedPicBtn = document.getElementById('save-cropped-pic');
-      const cancelCropBtn = document.getElementById('cancel-crop');
-      const currentProfilePic = document.getElementById('current-profile-pic');
+      const choosePicBtn = document.getElementById("choose-pic-btn");
+      const newProfilePicInput = document.getElementById("new-profile-picture");
+      const cropCanvas = document.getElementById("crop-canvas");
+      const cropControls = document.getElementById("crop-controls");
+      const saveCroppedPicBtn = document.getElementById("save-cropped-pic");
+      const cancelCropBtn = document.getElementById("cancel-crop");
+      const currentProfilePic = document.getElementById("current-profile-pic");
 
-      choosePicBtn?.addEventListener('click', () => {
+      choosePicBtn?.addEventListener("click", () => {
         newProfilePicInput.click();
       });
 
-      newProfilePicInput?.addEventListener('change', (e) => {
+      newProfilePicInput?.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
           reader.onload = (event) => {
-            cropCanvas.style.display = 'block';
-            cropControls.style.display = 'block';
-            choosePicBtn.style.display = 'none';
-            
+            cropCanvas.style.display = "block";
+            cropControls.style.display = "block";
+            choosePicBtn.style.display = "none";
+
             const img = new Image();
             img.onload = () => {
               const canvas = cropCanvas;
-              const ctx = canvas.getContext('2d');
-              
+              const ctx = canvas.getContext("2d");
+
               if (profileCropper) {
                 profileCropper.destroy();
               }
-              
+
               canvas.width = img.width;
               canvas.height = img.height;
               ctx.drawImage(img, 0, 0);
-              
+
               profileCropper = new Cropper(canvas, {
                 aspectRatio: 1,
                 viewMode: 1,
@@ -339,52 +417,55 @@
         }
       });
 
-      saveCroppedPicBtn?.addEventListener('click', async () => {
+      saveCroppedPicBtn?.addEventListener("click", async () => {
         if (profileCropper) {
           const canvas = profileCropper.getCroppedCanvas({
             width: 400,
             height: 400,
           });
-          
+
           canvas.toBlob(async (blob) => {
             const formData = new FormData();
-            formData.append('profilePicture', blob, 'profile.jpg');
-            
+            formData.append("profilePicture", blob, "profile.jpg");
+
             try {
-              const res = await fetch('/update-profile-picture', {
-                method: 'POST',
+              const res = await fetch("/update-profile-picture", {
+                method: "POST",
                 body: formData,
               });
-              
-              console.log('Response status:', res.status);
+
+              console.log("Response status:", res.status);
               const data = await res.json();
-              console.log('Response data:', data);
-              
+              console.log("Response data:", data);
+
               if (res.ok) {
                 currentProfilePic.src = data.base64;
                 resetCropUI();
-                alert('Profile picture updated!');
+                alert("Profile picture updated!");
               } else {
-                console.error('Server error:', data);
-                alert('Failed to update profile picture: ' + (data.error || 'Unknown error'));
+                console.error("Server error:", data);
+                alert(
+                  "Failed to update profile picture: " +
+                    (data.error || "Unknown error"),
+                );
               }
             } catch (err) {
-              console.error('Fetch error:', err);
-              alert('Error updating profile picture: ' + err.message);
+              console.error("Fetch error:", err);
+              alert("Error updating profile picture: " + err.message);
             }
           });
         }
       });
 
-      cancelCropBtn?.addEventListener('click', () => {
+      cancelCropBtn?.addEventListener("click", () => {
         resetCropUI();
       });
 
       function resetCropUI() {
-        cropCanvas.style.display = 'none';
-        cropControls.style.display = 'none';
-        choosePicBtn.style.display = 'block';
-        newProfilePicInput.value = '';
+        cropCanvas.style.display = "none";
+        cropControls.style.display = "none";
+        choosePicBtn.style.display = "block";
+        newProfilePicInput.value = "";
         if (profileCropper) {
           profileCropper.destroy();
           profileCropper = null;

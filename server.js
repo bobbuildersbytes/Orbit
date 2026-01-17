@@ -14,6 +14,7 @@ const PageEvent = require("./models/PageEvent");
 // const Presence = require("./models/Presence"); // Removed
 const nodemailer = require("nodemailer");
 const { aiHookConfigured, callAIHook } = require("./utils/aiHook");
+const { fetchNearbyPlaces } = require("./utils/places");
 
 const app = express();
 const port = 8008;
@@ -126,21 +127,21 @@ app.post("/signup", upload.single("profilePicture"), async (req, res) => {
   try {
     const { firstName, lastName, email, password, croppedImage } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     let profilePicture = null;
-    
+
     // Handle cropped image from base64 - store directly in DB
     if (croppedImage) {
       profilePicture = croppedImage; // Store full base64 string
     } else if (req.file) {
       // Convert uploaded file to base64
       const fileBuffer = fs.readFileSync(req.file.path);
-      const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString("base64")}`;
       profilePicture = base64Image;
       // Delete the temporary file
       fs.unlinkSync(req.file.path);
     }
-    
+
     let uniqueId;
     do {
       uniqueId = Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -170,40 +171,45 @@ app.post(
   }),
 );
 
-app.post("/update-profile-picture", upload.single("profilePicture"), async (req, res) => {
-  console.log("POST /update-profile-picture request received");
-  console.log("Authenticated:", req.isAuthenticated());
-  console.log("File received:", !!req.file);
-  
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
-  
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    
-    if (req.file) {
-      console.log("Updating profile picture for user:", user._id);
-      
-      // Convert file to base64 and store in MongoDB
-      const fileBuffer = fs.readFileSync(req.file.path);
-      const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
-      user.profilePicture = base64Image;
-      
-      // Delete the temporary file
-      fs.unlinkSync(req.file.path);
-      
-      await user.save();
-      console.log("Profile picture updated successfully");
-      res.json({ success: true, base64: base64Image });
-    } else {
-      console.log("No file in request");
-      res.status(400).json({ error: "No file uploaded" });
+app.post(
+  "/update-profile-picture",
+  upload.single("profilePicture"),
+  async (req, res) => {
+    console.log("POST /update-profile-picture request received");
+    console.log("Authenticated:", req.isAuthenticated());
+    console.log("File received:", !!req.file);
+
+    if (!req.isAuthenticated())
+      return res.status(401).json({ error: "Not authenticated" });
+
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (req.file) {
+        console.log("Updating profile picture for user:", user._id);
+
+        // Convert file to base64 and store in MongoDB
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString("base64")}`;
+        user.profilePicture = base64Image;
+
+        // Delete the temporary file
+        fs.unlinkSync(req.file.path);
+
+        await user.save();
+        console.log("Profile picture updated successfully");
+        res.json({ success: true, base64: base64Image });
+      } else {
+        console.log("No file in request");
+        res.status(400).json({ error: "No file uploaded" });
+      }
+    } catch (err) {
+      console.error("Error updating profile picture:", err);
+      res.status(500).json({ error: err.message });
     }
-  } catch (err) {
-    console.error("Error updating profile picture:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+  },
+);
 
 app.post("/add-friend", async (req, res) => {
   console.log("POST /add-friend request received");
@@ -252,36 +258,48 @@ app.post("/remove-friend", async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const friendId = req.body.friendId;
-    
+
     console.log("Removing friend:", friendId, "for user:", user._id.toString());
-    console.log("User friends before:", user.friends.map(id => id.toString()));
-    
+    console.log(
+      "User friends before:",
+      user.friends.map((id) => id.toString()),
+    );
+
     // Remove from current user's friends list
     user.friends = user.friends.filter(
       (id) => id.toString() !== friendId.toString(),
     );
     await user.save();
-    
-    console.log("User friends after:", user.friends.map(id => id.toString()));
-    
+
+    console.log(
+      "User friends after:",
+      user.friends.map((id) => id.toString()),
+    );
+
     // Re-fetch friend to get latest state before modifying (bidirectional)
     const friend = await User.findById(friendId);
     if (friend) {
       console.log("Friend found:", friend._id.toString());
       if (!friend.friends) friend.friends = [];
-      console.log("Friend's friends before:", friend.friends.map(id => id.toString()));
-      
+      console.log(
+        "Friend's friends before:",
+        friend.friends.map((id) => id.toString()),
+      );
+
       friend.friends = friend.friends.filter(
         (id) => id.toString() !== user._id.toString(),
       );
       await friend.save();
-      
-      console.log("Friend's friends after:", friend.friends.map(id => id.toString()));
+
+      console.log(
+        "Friend's friends after:",
+        friend.friends.map((id) => id.toString()),
+      );
       console.log("Friend removed successfully (bidirectional)");
     } else {
       console.log("Friend not found with ID:", friendId);
     }
-    
+
     res.redirect("/main");
   } catch (err) {
     console.error("Error removing friend:", err);
@@ -300,8 +318,7 @@ app.post("/pager", async (req, res) => {
     const friend = await User.findById(req.body.friendId);
     if (!friend) {
       console.log("Friend not found with ID:", req.body.friendId);
-      if (wantsJson)
-        return res.status(404).json({ error: "Friend not found" });
+      if (wantsJson) return res.status(404).json({ error: "Friend not found" });
       return res.redirect("/main");
     }
 
@@ -536,25 +553,37 @@ app.post("/api/page-events/:id/accept", async (req, res) => {
   }
 });
 
-app.post("/api/suggestions/context", async (req, res) => {
+app.get("/api/suggestions/context", async (req, res) => {
   if (!req.isAuthenticated())
     return res.status(401).json({ error: "Login required" });
   try {
     const currentUser = await User.findById(req.user.id);
-    if (!currentUser)
-      return res.status(404).json({ error: "User not found" });
+    if (!currentUser) return res.status(404).json({ error: "User not found" });
     const aiContext = await buildPageContext(currentUser);
+
+    // Fetch nearby places
+    let places = [];
+    if (currentUser.lat && currentUser.lon) {
+      places = await fetchNearbyPlaces(currentUser.lat, currentUser.lon);
+    }
+    aiContext.places = places; // Add to context
 
     let suggestions = fallbackSuggestions(aiContext.friends, aiContext.user);
 
+    console.log("Checking AI config...");
     if (aiHookConfigured()) {
+      console.log("AI is configured, calling hook...");
       const aiResponse = await callAIHook({
         type: "page_suggestions",
         context: aiContext,
       });
+      console.log("AI Hook response received:", aiResponse ? "Yes" : "No");
+
       if (aiResponse?.suggestions?.length) {
         suggestions = aiResponse.suggestions;
       }
+    } else {
+      console.log("AI not configured");
     }
 
     res.json({ suggestions, context: aiContext });
@@ -624,8 +653,11 @@ async function buildPageContext(currentUser) {
   });
 
   const friendContexts = friends.map((f) => {
-    const s =
-      stats.get(String(f._id)) || { total: 0, accepted: 0, lastPageAt: null };
+    const s = stats.get(String(f._id)) || {
+      total: 0,
+      accepted: 0,
+      lastPageAt: null,
+    };
     const acceptanceRate =
       s.total > 0 ? Number(((s.accepted / s.total) * 100).toFixed(1)) : 0;
     const distanceKm = computeDistanceKm(
@@ -690,7 +722,8 @@ function fallbackSuggestions(friendContexts, currentUser) {
     .filter((f) => f.available && !f.isBusy)
     .sort((a, b) => {
       // Highest acceptance rate first, then closest distance, then freshest last seen
-      const rateDiff = (b.pageHistory.acceptanceRate || 0) -
+      const rateDiff =
+        (b.pageHistory.acceptanceRate || 0) -
         (a.pageHistory.acceptanceRate || 0);
       if (rateDiff !== 0) return rateDiff;
       const distA = typeof a.distanceKm === "number" ? a.distanceKm : Infinity;
@@ -724,11 +757,7 @@ function fallbackSuggestions(friendContexts, currentUser) {
     });
   });
 
-  if (
-    currentUser.available &&
-    !currentUser.isBusy &&
-    !pageCandidates.length
-  ) {
+  if (currentUser.available && !currentUser.isBusy && !pageCandidates.length) {
     suggestions.push({
       type: "go_busy",
       label: "Set Busy mode",
