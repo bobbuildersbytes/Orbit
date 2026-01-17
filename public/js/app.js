@@ -262,7 +262,20 @@ async function updatePresence(available, busy) {
   syncBusyUI();
   syncAvailabilityUI(isAvailable);
 
-  amplitudeClient.track("presence_updated", { available, isBusy });
+  // Track availability with time context
+  const now = new Date();
+  amplitudeClient.track("presence_updated", { 
+    available, 
+    isBusy,
+    hour: now.getHours(),
+    dayOfWeek: now.getDay(),
+    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
+    isWeekend: now.getDay() === 0 || now.getDay() === 6,
+    timestamp: now.toISOString()
+  });
+  
+  // Track availability percentage periodically
+  trackAvailabilityPattern();
 
   if (lastLat && lastLon) {
     console.log("Updating marker immediately:", {
@@ -538,7 +551,16 @@ async function pageUser(toUserId) {
   // Orbit's /pager redirects, so fetch might follow it.
   // Ideally we change /pager to return JSON.
   alert("Page sent!");
-  amplitudeClient.track("page_clicked", { toUserId });
+  
+  // Track with time context
+  const now = new Date();
+  amplitudeClient.track("page_clicked", { 
+    toUserId,
+    hour: now.getHours(),
+    dayOfWeek: now.getDay(), // 0 = Sunday, 6 = Saturday
+    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
+    timestamp: now.toISOString()
+  });
 }
 
 function syncBusyUI() {
@@ -586,5 +608,89 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
+
+// Track availability patterns over time
+let availabilityLog = [];
+const MAX_LOG_ENTRIES = 168; // 1 week of hourly data
+
+function trackAvailabilityPattern() {
+  const now = new Date();
+  const entry = {
+    timestamp: now.toISOString(),
+    hour: now.getHours(),
+    dayOfWeek: now.getDay(),
+    available: isAvailable,
+    busy: isBusy
+  };
+  
+  availabilityLog.push(entry);
+  
+  // Keep only recent entries
+  if (availabilityLog.length > MAX_LOG_ENTRIES) {
+    availabilityLog = availabilityLog.slice(-MAX_LOG_ENTRIES);
+  }
+  
+  // Save to localStorage
+  try {
+    localStorage.setItem('availability_log', JSON.stringify(availabilityLog));
+  } catch (e) {
+    console.error('Failed to save availability log', e);
+  }
+}
+
+// Send availability analytics periodically (every hour)
+function sendAvailabilityAnalytics() {
+  if (availabilityLog.length === 0) return;
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentDay = now.getDay();
+  
+  // Calculate availability percentage for current hour across all days
+  const sameHourEntries = availabilityLog.filter(e => e.hour === currentHour);
+  const availableCount = sameHourEntries.filter(e => e.available && !e.busy).length;
+  const hourlyAvailabilityPct = sameHourEntries.length > 0 
+    ? Math.round((availableCount / sameHourEntries.length) * 100) 
+    : 0;
+  
+  // Calculate availability percentage for current day of week
+  const sameDayEntries = availabilityLog.filter(e => e.dayOfWeek === currentDay);
+  const dayAvailableCount = sameDayEntries.filter(e => e.available && !e.busy).length;
+  const dailyAvailabilityPct = sameDayEntries.length > 0
+    ? Math.round((dayAvailableCount / sameDayEntries.length) * 100)
+    : 0;
+  
+  // Overall availability percentage
+  const totalAvailable = availabilityLog.filter(e => e.available && !e.busy).length;
+  const overallPct = Math.round((totalAvailable / availabilityLog.length) * 100);
+  
+  amplitudeClient.track('availability_pattern', {
+    hour: currentHour,
+    dayOfWeek: currentDay,
+    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentDay],
+    hourlyAvailabilityPercentage: hourlyAvailabilityPct,
+    dailyAvailabilityPercentage: dailyAvailabilityPct,
+    overallAvailabilityPercentage: overallPct,
+    dataPoints: availabilityLog.length,
+    currentlyAvailable: isAvailable,
+    currentlyBusy: isBusy
+  });
+}
+
+// Load availability log from localStorage on startup
+try {
+  const saved = localStorage.getItem('availability_log');
+  if (saved) {
+    availabilityLog = JSON.parse(saved);
+  }
+} catch (e) {
+  console.error('Failed to load availability log', e);
+}
+
+// Send analytics every hour
+setInterval(sendAvailabilityAnalytics, 60 * 60 * 1000);
+
+// Send analytics on page load (after 10 seconds to let everything initialize)
+setTimeout(sendAvailabilityAnalytics, 10000);
 
 bootstrap();

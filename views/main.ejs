@@ -203,9 +203,9 @@
                   <button type="button" id="choose-pic-btn" class="secondary" style="width: 100%;">Change Profile Picture</button>
                 </form>
                 <canvas id="crop-canvas" style="display: none; max-width: 100%; margin-top: var(--space-3); border: 1px solid #ccc;"></canvas>
-                <div id="crop-controls" style="display: none; margin-top: var(--space-2);">
+                <div id="crop-controls" style="display: none; gap: var(--space-2); margin-top: var(--space-2);">
                   <button type="button" id="save-cropped-pic" style="width: 100%;">Save</button>
-                  <button type="button" id="cancel-crop" class="secondary" style="width: 100%; margin-top: var(--space-2);">Cancel</button>
+                  <button type="button" id="cancel-crop" class="secondary" style="width: 100%;">Cancel</button>
                 </div>
               </div>
 
@@ -309,7 +309,7 @@
           const reader = new FileReader();
           reader.onload = (event) => {
             cropCanvas.style.display = 'block';
-            cropControls.style.display = 'block';
+            cropControls.style.display = 'flex';
             choosePicBtn.style.display = 'none';
             
             const img = new Image();
