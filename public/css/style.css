@@ -1370,6 +1370,9 @@
 }
 
 .back-link:hover { opacity: 1; }
+
+
+
 /* ============================================
    SPACE THEME - ULTRA REALISTIC WITH SPACESHIP
    ============================================ */
@@ -1643,7 +1646,6 @@
   left: -150px;
   z-index: 6;
   animation: spaceship-fly 30s linear infinite;
-  transform: scaleX(-1);
 }
 
 /* Main Body */
@@ -1655,7 +1657,7 @@
   background: linear-gradient(135deg, #b0bec5 0%, #78909c 50%, #546e7a 100%);
   clip-path: polygon(0% 50%, 15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%);
   top: 50%;
-  left: 20px;
+  right: 20px;
   transform: translateY(-50%);
   box-shadow: 
     inset -3px -3px 8px rgba(0, 0, 0, 0.5),
@@ -1672,7 +1674,7 @@
   background: radial-gradient(ellipse, rgba(100, 200, 255, 0.9), rgba(30, 136, 229, 0.7));
   border-radius: 50%;
   top: 50%;
-  left: 60px;
+  right: 30px;
   transform: translateY(-50%);
   box-shadow: 
     inset -2px -2px 4px rgba(0, 0, 0, 0.3),
@@ -1694,13 +1696,13 @@
 }
 
 .wing-left {
-  left: 25px;
+  right: 25px;
   transform: translateY(-50%) skewY(-20deg);
   clip-path: polygon(0% 0%, 100% 20%, 100% 100%, 0% 80%);
 }
 
 .wing-right {
-  left: 25px;
+  right: 25px;
   transform: translateY(-50%) skewY(20deg);
   clip-path: polygon(0% 20%, 100% 0%, 100% 80%, 0% 100%);
 }
@@ -1711,18 +1713,18 @@
 .engine-3 {
   position: absolute;
   height: 8px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(270deg, 
     rgba(100, 200, 255, 0.9), 
     rgba(100, 200, 255, 0.6), 
     rgba(255, 150, 100, 0.4),
     transparent);
   border-radius: 50%;
-  left: -40px;
+  left: -10px;
   animation: engine-pulse 0.2s ease-in-out infinite alternate;
 }
 
 .engine-1 {
-  width: 50px;
+  width: 60px;
   top: 50%;
   transform: translateY(-50%);
   box-shadow: 
@@ -1733,7 +1735,7 @@
 .engine-2 {
   width: 35px;
   top: 35%;
-  transform: translateY(-50%);
+  transform: translateY(-30%);
   opacity: 0.7;
   animation-delay: 0.1s;
 }
@@ -1741,7 +1743,7 @@
 .engine-3 {
   width: 35px;
   top: 65%;
-  transform: translateY(-50%);
+  transform: translateY(-30%);
   opacity: 0.7;
   animation-delay: 0.15s;
 }
@@ -1751,13 +1753,13 @@
   position: absolute;
   width: 80px;
   height: 3px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(270deg, 
     rgba(255, 200, 100, 0.6),
     rgba(100, 200, 255, 0.4),
     transparent);
   top: 50%;
-  left: -80px;
-  transform: translateY(-50%);
+  right: 80px;
+  transform: translateY(50%);
   border-radius: 50%;
   opacity: 0.5;
   animation: particle-drift 0.4s ease-out infinite;
@@ -1810,11 +1812,11 @@
 
 @keyframes particle-drift {
   0% {
-    transform: translateY(-50%) translateX(0);
+    transform: translateY(50%) translateX(0);
     opacity: 0.5;
   }
   100% {
-    transform: translateY(-50%) translateX(-20px);
+    transform: translateY(50%) translateX(20px);
     opacity: 0;
   }
 }
