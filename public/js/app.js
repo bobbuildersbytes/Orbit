@@ -1,10 +1,5 @@
 const availableBtn = document.getElementById("available-btn");
 const busyBtn = document.getElementById("busy-btn");
-const simulateToggle = document.getElementById("simulate-toggle");
-const simulateInputs = document.getElementById("simulate-inputs");
-const simLat = document.getElementById("sim-lat");
-const simLon = document.getElementById("sim-lon");
-const pushSimBtn = document.getElementById("push-sim-location");
 const usersList = document.getElementById("users-list");
 
 let pollTimer = null;
@@ -69,21 +64,6 @@ function wireEvents() {
     busyBtn.addEventListener("click", async () => {
       await updatePresence(isAvailable, !isBusy);
     });
-  }
-
-  if (simulateToggle) {
-    simulateToggle.addEventListener("change", (e) => {
-      simulateInputs.classList.toggle("hidden", !e.target.checked);
-      if (e.target.checked) {
-        stopLocationWatch();
-      } else {
-        startLocationWatch();
-      }
-    });
-  }
-
-  if (pushSimBtn) {
-    pushSimBtn.addEventListener("click", sendLocation);
   }
 
   const sidebar = document.getElementById("sidebar");
@@ -202,7 +182,7 @@ function startLocationWatch() {
       lastLon = longitude;
       // console.log("WatchPosition tick:", { latitude, longitude, isAvailable, isBusy });
       mapUI.updateMyMarker(latitude, longitude, isAvailable, isBusy);
-      if (isAvailable && (!simulateToggle || !simulateToggle.checked)) {
+      if (isAvailable) {
         pushLocation(latitude, longitude, pos.coords.accuracy);
       }
     },
@@ -267,7 +247,7 @@ async function updatePresence(available, busy) {
 
   if (available) {
     sendLocation();
-    if (!simulateToggle || !simulateToggle.checked) startLocationWatch();
+    startLocationWatch();
   } else {
     stopLocationWatch();
   }
@@ -292,26 +272,11 @@ function syncAvailabilityUI(available) {
 
 async function sendLocation() {
   if (!isAvailable) {
-    // If we just want to update the local marker, we can do it here, but watchPosition handles it.
-    // Explicit sendLocation is for the SERVER.
-    if (simulateToggle && !simulateToggle.checked) {
-      alert("Set availability on first");
-      return;
-    }
-  }
-  if (simulateToggle && simulateToggle.checked) {
-    const lat = parseFloat(simLat.value);
-    const lon = parseFloat(simLon.value);
-    if (Number.isNaN(lat) || Number.isNaN(lon)) return alert("Enter lat/lon");
-    await pushLocation(lat, lon, 5);
-    // Also update local marker for simulation
-    lastLat = lat;
-    lastLon = lon;
-    mapUI.updateMyMarker(lat, lon, isAvailable, isBusy);
+    alert("Set availability on first");
     return;
   }
   if (!navigator.geolocation) {
-    alert("Geolocation not supported; use simulate.");
+    alert("Geolocation not supported.");
     return;
   }
 

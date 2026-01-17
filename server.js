@@ -7,6 +7,8 @@ const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const User = require("./models/User");
 // const Presence = require("./models/Presence"); // Removed
 const nodemailer = require("nodemailer");
@@ -120,9 +122,22 @@ app.get("/signup", (req, res) => {
 
 app.post("/signup", upload.single("profilePicture"), async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, croppedImage } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const profilePicture = req.file ? req.file.filename : null;
+    
+    let profilePicture = null;
+    
+    // Handle cropped image from base64
+    if (croppedImage) {
+      const base64Data = croppedImage.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+      const filename = Date.now() + "-cropped.jpg";
+      fs.writeFileSync(path.join("public/uploads", filename), buffer);
+      profilePicture = filename;
+    } else if (req.file) {
+      profilePicture = req.file.filename;
+    }
+    
     let uniqueId;
     do {
       uniqueId = Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -151,6 +166,41 @@ app.post(
     failureRedirect: "/",
   }),
 );
+
+app.post("/update-profile-picture", upload.single("profilePicture"), async (req, res) => {
+  console.log("POST /update-profile-picture request received");
+  console.log("Authenticated:", req.isAuthenticated());
+  console.log("File received:", !!req.file);
+  
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    if (req.file) {
+      console.log("Updating profile picture for user:", user._id);
+      // Delete old profile picture if it exists
+      if (user.profilePicture) {
+        const oldPath = path.join("public/uploads", user.profilePicture);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+      
+      user.profilePicture = req.file.filename;
+      await user.save();
+      console.log("Profile picture updated successfully:", req.file.filename);
+      res.json({ success: true, filename: req.file.filename });
+    } else {
+      console.log("No file in request");
+      res.status(400).json({ error: "No file uploaded" });
+    }
+  } catch (err) {
+    console.error("Error updating profile picture:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.post("/add-friend", async (req, res) => {
   console.log("POST /add-friend request received");

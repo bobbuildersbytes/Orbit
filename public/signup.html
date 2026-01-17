@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Orbit - Sign Up</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css" />
   </head>
   <body>
     <div id="login-view" class="view-container">
@@ -64,8 +65,23 @@
                 id="profilePicture"
                 name="profilePicture"
                 accept="image/*"
-                style="padding: var(--space-2)"
+                style="padding: var(--space-2); display: none;"
               />
+              <input type="hidden" id="croppedImage" name="croppedImage" />
+              <button type="button" id="selectImageBtn" class="secondary" style="width: 100%; margin-bottom: var(--space-2);">Select Image</button>
+              <div id="cropContainer" style="display: none; margin-top: var(--space-2);">
+                <img id="cropImage" style="max-width: 100%; display: block;" />
+                <div style="margin-top: var(--space-2); display: flex; gap: var(--space-2);">
+                  <button type="button" id="cropBtn" class="secondary" style="flex: 1;">Crop & Continue</button>
+                  <button type="button" id="cancelCropBtn" class="secondary" style="flex: 1;">Cancel</button>
+                </div>
+              </div>
+              <div id="previewContainer" style="display: none; margin-top: var(--space-2); text-align: center;">
+                <img id="previewImage" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #3b82f6;" />
+                <div style="margin-top: var(--space-2);">
+                  <button type="button" id="changeImageBtn" class="secondary small">Change Image</button>
+                </div>
+              </div>
             </div>
 
             <button
@@ -84,5 +100,87 @@
         </div>
       </div>
     </div>
+    <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script>
+      let cropper = null;
+      const profilePictureInput = document.getElementById('profilePicture');
+      const selectImageBtn = document.getElementById('selectImageBtn');
+      const cropContainer = document.getElementById('cropContainer');
+      const cropImage = document.getElementById('cropImage');
+      const cropBtn = document.getElementById('cropBtn');
+      const cancelCropBtn = document.getElementById('cancelCropBtn');
+      const previewContainer = document.getElementById('previewContainer');
+      const previewImage = document.getElementById('previewImage');
+      const changeImageBtn = document.getElementById('changeImageBtn');
+      const croppedImageInput = document.getElementById('croppedImage');
+
+      selectImageBtn.addEventListener('click', () => {
+        profilePictureInput.click();
+      });
+
+      changeImageBtn.addEventListener('click', () => {
+        previewContainer.style.display = 'none';
+        croppedImageInput.value = '';
+        profilePictureInput.value = '';
+      });
+
+      profilePictureInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            cropImage.src = event.target.result;
+            cropContainer.style.display = 'block';
+            previewContainer.style.display = 'none';
+            
+            if (cropper) {
+              cropper.destroy();
+            }
+            
+            cropper = new Cropper(cropImage, {
+              aspectRatio: 1,
+              viewMode: 1,
+              autoCropArea: 1,
+              responsive: true,
+              background: false,
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      cropBtn.addEventListener('click', () => {
+        if (cropper) {
+          const canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 400,
+          });
+          
+          canvas.toBlob((blob) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              croppedImageInput.value = reader.result;
+              previewImage.src = reader.result;
+              cropContainer.style.display = 'none';
+              previewContainer.style.display = 'block';
+              if (cropper) {
+                cropper.destroy();
+                cropper = null;
+              }
+            };
+            reader.readAsDataURL(blob);
+          });
+        }
+      });
+
+      cancelCropBtn.addEventListener('click', () => {
+        cropContainer.style.display = 'none';
+        profilePictureInput.value = '';
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+      });
+    </script>
   </body>
 </html>
