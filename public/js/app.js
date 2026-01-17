@@ -523,11 +523,16 @@ async function pageUser(toUserId) {
 function syncBusyUI() {
   if (!busyBtn) return;
 
-  if (isAvailable) {
-    busyBtn.disabled = false;
-  } else {
+  if (!isAvailable) {
     busyBtn.disabled = true;
+    busyBtn.textContent = "Status: Hidden";
+    busyBtn.classList.remove("busy-state");
+    busyBtn.classList.remove("shared-state");
+    busyBtn.classList.add("hidden-state");
+    return;
   }
+
+  busyBtn.disabled = false;
 
   if (isBusy) {
     busyBtn.textContent = "Status: Busy (DND)";
