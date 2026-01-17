@@ -1065,3 +1065,23 @@ input:hover {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
   }
 }
+
+/* Busy User Card Styling */
+.user-card.busy-user {
+  opacity: 0.7;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%);
+  border-left: 3px solid #ef4444;
+}
+
+/* Busy Badge */
+.busy-badge {
+  display: inline-block;
+  background: #fecaca;
+  color: #991b1b;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 8px;
+  white-space: nowrap;
+}

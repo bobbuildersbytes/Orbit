@@ -394,15 +394,16 @@ function renderUsers(users) {
   usersList.innerHTML = "";
   filtered.forEach((u) => {
     const card = document.createElement("div");
-    card.className = "user-card";
+    const busyClass = u.isBusy ? " busy-user" : "";
+    card.className = "user-card" + busyClass;
     card.innerHTML = `
-      <div><strong>${u.name || u.email}</strong></div>
+      <div><strong>${u.name || u.email}</strong>${u.isBusy ? ' <span class="busy-badge">🔴 Busy</span>' : ''}</div>
       <div class="muted">${u.email}</div>
       <div class="actions">
         <button class="small" data-action="center">Center</button>
         ${
           u.isBusy
-            ? '<button class="small secondary" disabled title="User is busy">Busy</button>'
+            ? '<button class="small secondary" disabled title="User is busy - cannot page" style="opacity: 0.5; cursor: not-allowed;">Page</button>'
             : '<button class="small secondary" data-action="page">Page</button>'
         }
         <button class="small secondary" data-action="remove" style="background: #dc2626; color: white;">Remove</button>
