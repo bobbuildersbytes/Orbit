@@ -585,6 +585,18 @@ button:active {
   transform: translateY(0);
 }
 
+button:disabled {
+  background: var(--color-gray-300);
+  color: var(--color-gray-500);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+button:disabled::before {
+  display: none;
+}
+
 button.secondary {
   background: var(--color-gray-100);
   color: var(--color-gray-700);
@@ -850,18 +862,18 @@ input:hover {
   /* Mobile Sidebar */
   #sidebar {
     position: fixed;
-    bottom: 60px;
+    bottom: 0;
     left: 0;
     width: 100%;
     height: auto;
-    max-height: 80vh;
+    max-height: 85vh; /* Increased slightly */
     border-right: none;
     border-top: 1px solid var(--color-gray-200);
     border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
     box-shadow: var(--shadow-2xl);
     transform: translateY(120%);
     z-index: 1000;
-    padding-bottom: var(--space-5);
+    padding-bottom: 80px; /* Space for navbar */
     flex-direction: column;
     transition: transform var(--transition-base);
     background: rgba(255, 255, 255, 0.98);

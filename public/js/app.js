@@ -123,7 +123,18 @@ function wireEvents() {
   const sidebarTitle = document.getElementById("sidebar-title");
   const activitiesPanel = document.getElementById("activities-panel");
   const profilePanel = document.getElementById("profile-panel");
-
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      window.location.href = "/logout";
+    });
+  }
+  const logoutBtnMobile = document.getElementById("logout-btn-mobile");
+  if (logoutBtnMobile) {
+    logoutBtnMobile.addEventListener("click", () => {
+      window.location.href = "/logout";
+    });
+  }
   desktopNavIcons.forEach((btn) => {
     btn.addEventListener("click", () => {
       // 1. Update Active State
@@ -197,17 +208,31 @@ function startLocationWatch() {
   stopLocationWatch();
   geoWatchId = navigator.geolocation.watchPosition(
     (pos) => {
-      const { latitude, longitude } = pos.coords;
-      lastLat = latitude;
-      lastLon = longitude;
-      // console.log("WatchPosition tick:", { latitude, longitude, isAvailable, isBusy });
-      mapUI.updateMyMarker(latitude, longitude, isAvailable, isBusy);
-      if (isAvailable && (!simulateToggle || !simulateToggle.checked)) {
-        pushLocation(latitude, longitude, pos.coords.accuracy);
+      const { latitude, longitude, accuracy } = pos.coords;
+
+      // Calculate distance from last update
+      let distance = 0;
+      if (lastLat && lastLon) {
+        distance =
+          getDistanceFromLatLonInKm(lastLat, lastLon, latitude, longitude) *
+          1000; // meters
+      }
+
+      // Filter: Only update if moved > 10m OR first update
+      if (!lastLat || distance > 10) {
+        lastLat = latitude;
+        lastLon = longitude;
+
+        // console.log("WatchPosition tick:", { latitude, longitude, isAvailable, isBusy, distance });
+        mapUI.updateMyMarker(latitude, longitude, isAvailable, isBusy);
+
+        if (isAvailable && (!simulateToggle || !simulateToggle.checked)) {
+          pushLocation(latitude, longitude, accuracy);
+        }
       }
     },
     (err) => console.log("Location watch error", err),
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 },
   );
 }
 
@@ -280,13 +305,19 @@ function syncAvailabilityUI(available) {
     availableBtn.classList.remove("hidden-state");
     availableBtn.classList.add("shared-state");
     // Show Busy Button
-    if (busyBtn) busyBtn.classList.remove("hidden");
+    if (busyBtn) {
+      busyBtn.classList.remove("hidden");
+      busyBtn.disabled = false;
+    }
   } else {
     availableBtn.textContent = "Location: Hidden";
     availableBtn.classList.remove("shared-state");
     availableBtn.classList.add("hidden-state");
-    // Hide and Reset Busy Button (local only? server persists it, but doesn't matter if hidden)
-    if (busyBtn) busyBtn.classList.add("hidden");
+    // Disable and Reset Busy Button
+    if (busyBtn) {
+      busyBtn.classList.remove("hidden");
+      busyBtn.disabled = true;
+    }
   }
 }
 
@@ -442,9 +473,9 @@ function syncBusyUI() {
   if (!busyBtn) return;
 
   if (isAvailable) {
-    busyBtn.classList.remove("hidden");
+    busyBtn.disabled = false;
   } else {
-    busyBtn.classList.add("hidden");
+    busyBtn.disabled = true;
   }
 
   if (isBusy) {
@@ -458,6 +489,25 @@ function syncBusyUI() {
     busyBtn.classList.remove("hidden-state");
     busyBtn.classList.add("shared-state");
   }
+}
+
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
 }
 
 bootstrap();

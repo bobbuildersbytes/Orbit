@@ -130,8 +130,33 @@
 
             <!-- Profile (Hidden by default on desktop) -->
             <div class="panel-section hidden" id="profile-panel">
-              <div class="panel-header mobile-only">
-                <h3>Profile & Settings</h3>
+              <div
+                class="panel-header mobile-only"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: var(--space-4);
+                "
+              >
+                <div>
+                  <div
+                    style="font-weight: bold; font-size: var(--font-size-lg)"
+                  >
+                    <%= user.firstName %> <%= user.lastName %>
+                  </div>
+                  <div
+                    style="
+                      color: var(--color-gray-500);
+                      font-size: var(--font-size-sm);
+                    "
+                  >
+                    <%= user.email %>
+                  </div>
+                </div>
+                <button id="logout-btn-mobile" class="secondary small">
+                  Logout
+                </button>
               </div>
               <div
                 class="panel-header desktop-only-flex"
@@ -142,8 +167,20 @@
                   margin-bottom: var(--space-4);
                 "
               >
-                <div id="user-info" style="font-weight: bold">
-                  <%= user.firstName %> <%= user.lastName %>
+                <div>
+                  <div
+                    style="font-weight: bold; font-size: var(--font-size-lg)"
+                  >
+                    <%= user.firstName %> <%= user.lastName %>
+                  </div>
+                  <div
+                    style="
+                      color: var(--color-gray-500);
+                      font-size: var(--font-size-sm);
+                    "
+                  >
+                    <%= user.email %>
+                  </div>
                 </div>
                 <button id="logout-btn" class="secondary small">Logout</button>
               </div>
