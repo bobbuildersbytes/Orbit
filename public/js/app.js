@@ -186,7 +186,16 @@ function startLocationWatch() {
         pushLocation(latitude, longitude, pos.coords.accuracy);
       }
     },
-    (err) => console.log("Location watch error", err),
+    (err) => {
+      console.error("Location watch error:", err.message, err.code);
+      if (err.code === 1) {
+        console.warn("Location permission denied. Enable location access in browser settings.");
+      } else if (err.code === 2) {
+        console.warn("Location unavailable. Check device location settings.");
+      } else if (err.code === 3) {
+        console.warn("Location request timeout. Try again.");
+      }
+    },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 },
   );
 }
@@ -370,17 +379,46 @@ function renderUsers(users) {
             ? '<button class="small secondary" disabled title="User is busy">Busy</button>'
             : '<button class="small secondary" data-action="page">Page</button>'
         }
+        <button class="small secondary" data-action="remove" style="background: #dc2626; color: white;">Remove</button>
       </div>
     `;
-    const [centerBtn, pageBtn] = card.querySelectorAll("button");
+    const centerBtn = card.querySelector('[data-action="center"]');
+    const pageBtn = card.querySelector('[data-action="page"]');
+    const removeBtn = card.querySelector('[data-action="remove"]');
+    
     centerBtn.addEventListener("click", () => {
       if (u.lat && u.lon) mapUI.centerOn(u.lat, u.lon);
     });
     if (pageBtn) {
       pageBtn.addEventListener("click", () => pageUser(u.userId));
     }
+    removeBtn.addEventListener("click", () => removeFriend(u.userId, u.name || u.email));
+    
     usersList.appendChild(card);
   });
+}
+
+async function removeFriend(friendId, friendName) {
+  if (!confirm(`Remove ${friendName} from your friends?`)) return;
+  
+  try {
+    const res = await fetch('/remove-friend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `friendId=${friendId}`,
+    });
+    
+    if (res.ok) {
+      alert('Friend removed');
+      // Reload to update the friends list
+      window.location.reload();
+    } else {
+      alert('Failed to remove friend');
+    }
+  } catch (err) {
+    console.error('Error removing friend:', err);
+    alert('Error removing friend');
+  }
 }
 
 async function pageUser(toUserId) {
