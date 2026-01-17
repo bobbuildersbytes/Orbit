@@ -1,26 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <h1>Sign Up</h1>
-  <form action="/signup" method="POST" enctype="multipart/form-data">
-    <label for="firstName">First Name:</label>
-    <input type="text" id="firstName" name="firstName" required><br>
-    <label for="lastName">Last Name:</label>
-    <input type="text" id="lastName" name="lastName" required><br>
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required><br>
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required><br>
-    <label for="profilePicture">Profile Picture:</label>
-    <input type="file" id="profilePicture" name="profilePicture" accept="image/*"><br>
-    <button type="submit">Sign Up</button>
-  </form>
-  <a href="/">Back to Login</a>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbit - Sign Up</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="login-view" class="view-container">
+      <div class="login-box" style="max-width: 480px">
+        <h1>Join Orbit</h1>
+        <div id="auth-section">
+          <form
+            action="/signup"
+            method="POST"
+            enctype="multipart/form-data"
+            style="display: flex; flex-direction: column; gap: var(--space-3)"
+          >
+            <div style="display: flex; gap: var(--space-3)">
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                placeholder="First Name"
+                required
+              />
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                placeholder="Last Name"
+                required
+              />
+            </div>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Email Address"
+              required
+            />
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Password"
+              required
+            />
+
+            <div style="text-align: left">
+              <label
+                for="profilePicture"
+                style="
+                  font-size: var(--font-size-sm);
+                  color: var(--color-gray-600);
+                  margin-bottom: var(--space-1);
+                  display: block;
+                "
+                >Profile Picture</label
+              >
+              <input
+                type="file"
+                id="profilePicture"
+                name="profilePicture"
+                accept="image/*"
+                style="padding: var(--space-2)"
+              />
+            </div>
+
+            <button
+              type="submit"
+              style="width: 100%; margin-top: var(--space-2)"
+            >
+              Sign Up
+            </button>
+          </form>
+
+          <div class="divider">Already have an account?</div>
+
+          <a href="/" style="text-decoration: none">
+            <button class="secondary" style="width: 100%">Back to Login</button>
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>

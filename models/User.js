@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
   firstName: String,
@@ -6,9 +6,18 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   profilePicture: String, // path to the image
-  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   uniqueId: { type: String, unique: true },
-  // Add other fields as needed
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  uniqueId: { type: String, unique: true },
+
+  // Location & Presence
+  available: { type: Boolean, default: false },
+  lat: { type: Number },
+  lon: { type: Number },
+  accuracy: { type: Number },
+  isBusy: { type: Boolean, default: false },
+  lastSeen: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);
