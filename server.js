@@ -251,11 +251,37 @@ app.post("/remove-friend", async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect("/");
   try {
     const user = await User.findById(req.user.id);
+    const friendId = req.body.friendId;
+    
+    console.log("Removing friend:", friendId, "for user:", user._id.toString());
+    console.log("User friends before:", user.friends.map(id => id.toString()));
+    
+    // Remove from current user's friends list
     user.friends = user.friends.filter(
-      (id) => id.toString() !== req.body.friendId,
+      (id) => id.toString() !== friendId.toString(),
     );
     await user.save();
-    console.log("Friend removed successfully");
+    
+    console.log("User friends after:", user.friends.map(id => id.toString()));
+    
+    // Re-fetch friend to get latest state before modifying (bidirectional)
+    const friend = await User.findById(friendId);
+    if (friend) {
+      console.log("Friend found:", friend._id.toString());
+      if (!friend.friends) friend.friends = [];
+      console.log("Friend's friends before:", friend.friends.map(id => id.toString()));
+      
+      friend.friends = friend.friends.filter(
+        (id) => id.toString() !== user._id.toString(),
+      );
+      await friend.save();
+      
+      console.log("Friend's friends after:", friend.friends.map(id => id.toString()));
+      console.log("Friend removed successfully (bidirectional)");
+    } else {
+      console.log("Friend not found with ID:", friendId);
+    }
+    
     res.redirect("/main");
   } catch (err) {
     console.error("Error removing friend:", err);
