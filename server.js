@@ -173,7 +173,14 @@ app.post("/add-friend", async (req, res) => {
       ) {
         user.friends.push(friend._id);
         await user.save();
-        console.log("Friend added successfully");
+        // Re-fetch friend to get latest state before modifying
+        const friendUpdated = await User.findById(friend._id);
+        if (!friendUpdated.friends) friendUpdated.friends = [];
+        if (!friendUpdated.friends.includes(user._id)) {
+          friendUpdated.friends.push(user._id);
+          await friendUpdated.save();
+        }
+        console.log("Friend added successfully (bidirectional)");
       } else {
         console.log("Friend not added: self or already friends");
       }
@@ -339,7 +346,20 @@ app.get("/api/presence", async (req, res) => {
       profilePicture: f.profilePicture,
     }));
 
-    res.json({ presences: mapped });
+    // Add current user to the presences list
+    const userPresence = {
+      userId: currentUser._id,
+      name: `${currentUser.firstName} ${currentUser.lastName}`,
+      email: currentUser.email,
+      lat: currentUser.lat,
+      lon: currentUser.lon,
+      isBusy: currentUser.isBusy,
+      available: currentUser.available,
+      profilePicture: currentUser.profilePicture,
+      isCurrentUser: true,
+    };
+
+    res.json({ presences: [userPresence, ...mapped] });
   } catch (err) {
     console.error("Error in /api/presence:", err);
     res.status(500).json({ error: err.message });

@@ -6,9 +6,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   profilePicture: String, // path to the image
-  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  uniqueId: { type: String, unique: true },
-  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  friends: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], default: [] },
   uniqueId: { type: String, unique: true },
 
   // Location & Presence
