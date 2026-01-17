@@ -81,11 +81,7 @@ function wireEvents() {
       sidebar.classList.add("collapsed");
       desktopSidebarToggle.classList.remove("hidden");
     }
-    setTimeout(() => {
-      if (mapUI && mapUI.map) {
-        mapUI.map.invalidateSize();
-      }
-    }, 300);
+    // Map invalidation is now handled by ResizeObserver in bootstrap()
   }
 
   // Sidebar Open (Desktop)
@@ -178,6 +174,17 @@ function wireEvents() {
   });
 
   startLocationWatch();
+
+  // ResizeObserver for smooth map transitions
+  const mapContainer = document.getElementById("map");
+  if (mapContainer) {
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapUI && mapUI.map) {
+        mapUI.map.invalidateSize();
+      }
+    });
+    resizeObserver.observe(mapContainer);
+  }
 }
 
 let lastLat = null;
