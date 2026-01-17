@@ -8,8 +8,10 @@ const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const crypto = require("crypto");
 const User = require("./models/User");
+const PageEvent = require("./models/PageEvent");
 // const Presence = require("./models/Presence"); // Removed
 const nodemailer = require("nodemailer");
+const { aiHookConfigured, callAIHook } = require("./utils/aiHook");
 
 const app = express();
 const port = 8008;
@@ -211,42 +213,63 @@ app.post("/remove-friend", async (req, res) => {
 });
 
 app.post("/pager", async (req, res) => {
-  if (!req.isAuthenticated()) return res.redirect("/");
+  const wantsJson = req.is("application/json");
+  if (!req.isAuthenticated()) {
+    if (wantsJson)
+      return res.status(401).json({ error: "Authentication required" });
+    return res.redirect("/");
+  }
   try {
     const friend = await User.findById(req.body.friendId);
-    if (friend) {
-      const pager = await User.findById(req.user.id);
-      console.log(
-        `Sending pager notification to ${friend.email} from ${pager.firstName} ${pager.lastName}`,
-      );
+    if (!friend) {
+      console.log("Friend not found with ID:", req.body.friendId);
+      if (wantsJson)
+        return res.status(404).json({ error: "Friend not found" });
+      return res.redirect("/main");
+    }
 
-      // Send email via Nodemailer
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: friend.email,
-        subject: `${pager.firstName} ${pager.lastName} paged you!`,
-        html: `
+    const pager = await User.findById(req.user.id);
+    console.log(
+      `Sending pager notification to ${friend.email} from ${pager.firstName} ${pager.lastName}`,
+    );
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: friend.email,
+      subject: `${pager.firstName} ${pager.lastName} paged you!`,
+      html: `
           <h2>You've been paged!</h2>
           <p><strong>${pager.firstName} ${pager.lastName}</strong> has sent you a page notification.</p>
+          <p>Message: ${req.body.message || "No message provided."}</p>
           <p>Check your app to respond!</p>
         `,
-      };
+    };
 
-      console.log("Mail options:", mailOptions);
-      const info = await transporter.sendMail(mailOptions);
-      console.log(
-        "Pager sent successfully to",
-        friend.email,
-        "Response:",
-        info.response,
-      );
-    } else {
-      console.log("Friend not found with ID:", req.body.friendId);
+    console.log("Mail options:", mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(
+      "Pager sent successfully to",
+      friend.email,
+      "Response:",
+      info.response,
+    );
+
+    const pageEvent = new PageEvent({
+      fromUser: req.user.id,
+      toUser: friend._id,
+      message: req.body.message,
+      meta: { emailResponse: info.response, toEmail: friend.email },
+    });
+    await pageEvent.save();
+
+    if (wantsJson) {
+      return res.json({ success: true, pageEventId: pageEvent._id });
     }
     res.redirect("/main");
   } catch (err) {
     console.error("Error sending pager:", err.message);
     console.error("Full error:", err);
+    if (wantsJson) return res.status(500).json({ error: err.message });
     res.redirect("/main");
   }
 });
@@ -415,11 +438,226 @@ app.post("/api/location", async (req, res) => {
   }
 });
 
+// Mark a page event as accepted (for response-rate tracking)
+app.post("/api/page-events/:id/accept", async (req, res) => {
+  if (!req.isAuthenticated())
+    return res.status(401).json({ error: "Login required" });
+  try {
+    const evt = await PageEvent.findById(req.params.id);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (String(evt.toUser) !== req.user.id)
+      return res.status(403).json({ error: "Not authorized to accept" });
+
+    evt.status = "accepted";
+    evt.meta = { ...(evt.meta || {}), acceptedAt: new Date() };
+    await evt.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error accepting page:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/suggestions/context", async (req, res) => {
-  // Placeholder for suggestions API
-  res.json({ suggestions: [] });
+  if (!req.isAuthenticated())
+    return res.status(401).json({ error: "Login required" });
+  try {
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser)
+      return res.status(404).json({ error: "User not found" });
+    const aiContext = await buildPageContext(currentUser);
+
+    let suggestions = fallbackSuggestions(aiContext.friends, aiContext.user);
+
+    if (aiHookConfigured()) {
+      const aiResponse = await callAIHook({
+        type: "page_suggestions",
+        context: aiContext,
+      });
+      if (aiResponse?.suggestions?.length) {
+        suggestions = aiResponse.suggestions;
+      }
+    }
+
+    res.json({ suggestions, context: aiContext });
+  } catch (err) {
+    console.error("Error building suggestions context:", err);
+    res.status(500).json({ error: err.message, suggestions: [] });
+  }
 });
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
+// ---------- Helper functions ----------
+const EARTH_RADIUS_KM = 6371;
+
+function computeDistanceKm(lat1, lon1, lat2, lon2) {
+  if (
+    typeof lat1 !== "number" ||
+    typeof lon1 !== "number" ||
+    typeof lat2 !== "number" ||
+    typeof lon2 !== "number"
+  ) {
+    return null;
+  }
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(EARTH_RADIUS_KM * c * 10) / 10; // One decimal place
+}
+
+async function buildPageContext(currentUser) {
+  const now = new Date();
+  const friendIds = currentUser.friends || [];
+  const friends = await User.find({
+    _id: { $in: friendIds },
+  }).select(
+    "firstName lastName email lat lon available isBusy lastSeen uniqueId profilePicture",
+  );
+
+  const events = await PageEvent.find({
+    fromUser: currentUser._id,
+    toUser: { $in: friendIds },
+  })
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
+
+  const stats = new Map();
+  events.forEach((evt) => {
+    const key = String(evt.toUser);
+    if (!stats.has(key)) {
+      stats.set(key, { total: 0, accepted: 0, lastPageAt: null });
+    }
+    const entry = stats.get(key);
+    entry.total += 1;
+    if (evt.status === "accepted") entry.accepted += 1;
+    if (!entry.lastPageAt) entry.lastPageAt = evt.createdAt;
+    stats.set(key, entry);
+  });
+
+  const friendContexts = friends.map((f) => {
+    const s =
+      stats.get(String(f._id)) || { total: 0, accepted: 0, lastPageAt: null };
+    const acceptanceRate =
+      s.total > 0 ? Number(((s.accepted / s.total) * 100).toFixed(1)) : 0;
+    const distanceKm = computeDistanceKm(
+      currentUser.lat,
+      currentUser.lon,
+      f.lat,
+      f.lon,
+    );
+    const lastSeenMinutesAgo = f.lastSeen
+      ? Math.round((now - new Date(f.lastSeen)) / 60000)
+      : null;
+
+    return {
+      id: String(f._id),
+      uniqueId: f.uniqueId,
+      name: `${f.firstName} ${f.lastName}`.trim(),
+      email: f.email,
+      available: f.available,
+      isBusy: f.isBusy,
+      lastSeen: f.lastSeen,
+      lastSeenMinutesAgo,
+      location: f.lat && f.lon ? { lat: f.lat, lon: f.lon } : null,
+      distanceKm,
+      pageHistory: {
+        total: s.total,
+        accepted: s.accepted,
+        acceptanceRate,
+        lastPageAt: s.lastPageAt,
+      },
+    };
+  });
+
+  return {
+    generatedAt: now.toISOString(),
+    user: {
+      id: String(currentUser._id),
+      name: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
+      email: currentUser.email,
+      available: currentUser.available,
+      isBusy: currentUser.isBusy,
+      location:
+        currentUser.lat && currentUser.lon
+          ? { lat: currentUser.lat, lon: currentUser.lon }
+          : null,
+    },
+    friends: friendContexts,
+  };
+}
+
+function fallbackSuggestions(friendContexts, currentUser) {
+  const suggestions = [];
+
+  if (!currentUser.available) {
+    suggestions.push({
+      type: "go_available",
+      label: "Share your location",
+      reason: "Turn on availability so friends can see and page you.",
+    });
+  }
+
+  const pageCandidates = friendContexts
+    .filter((f) => f.available && !f.isBusy)
+    .sort((a, b) => {
+      // Highest acceptance rate first, then closest distance, then freshest last seen
+      const rateDiff = (b.pageHistory.acceptanceRate || 0) -
+        (a.pageHistory.acceptanceRate || 0);
+      if (rateDiff !== 0) return rateDiff;
+      const distA = typeof a.distanceKm === "number" ? a.distanceKm : Infinity;
+      const distB = typeof b.distanceKm === "number" ? b.distanceKm : Infinity;
+      if (distA !== distB) return distA - distB;
+      const seenA =
+        typeof a.lastSeenMinutesAgo === "number"
+          ? a.lastSeenMinutesAgo
+          : Infinity;
+      const seenB =
+        typeof b.lastSeenMinutesAgo === "number"
+          ? b.lastSeenMinutesAgo
+          : Infinity;
+      return seenA - seenB;
+    })
+    .slice(0, 3);
+
+  pageCandidates.forEach((f) => {
+    suggestions.push({
+      type: "page_friend",
+      label: `Page ${f.name || f.email}`,
+      reason: [
+        f.distanceKm ? `${f.distanceKm}km away` : "Distance unknown",
+        f.pageHistory.acceptanceRate
+          ? `${f.pageHistory.acceptanceRate}% past accept rate`
+          : "No response history yet",
+      ]
+        .filter(Boolean)
+        .join(" • "),
+      data: { userId: f.id },
+    });
+  });
+
+  if (
+    currentUser.available &&
+    !currentUser.isBusy &&
+    !pageCandidates.length
+  ) {
+    suggestions.push({
+      type: "go_busy",
+      label: "Set Busy mode",
+      reason: "No friends are available; toggle DND if you want to mute pages.",
+    });
+  }
+
+  return suggestions;
+}
