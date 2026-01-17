@@ -1,88 +1,143 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Orbit - Sign Up</title>
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <div id="login-view" class="view-container">
-      <div class="login-box" style="max-width: 480px">
-        <h1>Join Orbit</h1>
-        <div id="auth-section">
-          <form
-            action="/signup"
-            method="POST"
-            enctype="multipart/form-data"
-            style="display: flex; flex-direction: column; gap: var(--space-3)"
-          >
-            <div style="display: flex; gap: var(--space-3)">
-              <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                placeholder="First Name"
-                required
-              />
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                placeholder="Last Name"
-                required
-              />
-            </div>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Email Address"
-              required
-            />
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Password"
-              required
-            />
-
-            <div style="text-align: left">
-              <label
-                for="profilePicture"
-                style="
-                  font-size: var(--font-size-sm);
-                  color: var(--color-gray-600);
-                  margin-bottom: var(--space-1);
-                  display: block;
-                "
-                >Profile Picture</label
-              >
-              <input
-                type="file"
-                id="profilePicture"
-                name="profilePicture"
-                accept="image/*"
-                style="padding: var(--space-2)"
-              />
-            </div>
-
-            <button
-              type="submit"
-              style="width: 100%; margin-top: var(--space-2)"
-            >
-              Sign Up
-            </button>
-          </form>
-
-          <div class="divider">Already have an account?</div>
-
-          <a href="/" style="text-decoration: none">
-            <button class="secondary" style="width: 100%">Back to Login</button>
-          </a>
-        </div>
-      </div>
-    </div>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit | Join the Galaxy</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+      html, body {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+          overflow: hidden;
+          background: #020617;
+      }
+      
+      /* ===== SPACE STAGE ===== */
+      .space-stage {
+          position: fixed;
+          inset: 0;
+          background: radial-gradient(circle at center, #1e293b 0%, #020617 70%);
+          overflow: hidden;
+          z-index: 0;
+      }
+      
+      /* ===== STARFIELD ===== */
+      .stars {
+          position: absolute;
+          inset: -200%;
+          background-image:
+              radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+              radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+              radial-gradient(2px 2px at 90px 40px, #fff, transparent),
+              radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+              radial-gradient(1px 1px at 160px 120px, #fff, transparent);
+          background-size: 200px 200px;
+          animation: star-drift 120s linear infinite;
+          opacity: 0.4;
+      }
+      
+      @keyframes star-drift {
+          from { transform: translateY(0); }
+          to { transform: translateY(1000px); }
+      }
+      
+      /* ===== ORBIT SYSTEM ===== */
+      .orbit-system {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 1px;
+          height: 1px;
+      }
+      
+      /* Orbit rings (invisible, just for motion) */
+      .orbit {
+          position: absolute;
+          border-radius: 50%;
+          border: 1px dashed rgba(255,255,255,0.05);
+      }
+      
+      /* ===== PLANETS ===== */
+      .planet {
+          position: absolute;
+          border-radius: 50%;
+          box-shadow:
+              inset -15px -15px 30px rgba(0,0,0,0.6),
+              0 0 30px rgba(255,255,255,0.15);
+      }
+      
+      /* Blue Planet */
+      .orbit-blue {
+          width: 600px;
+          height: 600px;
+          margin-left: -300px;
+          margin-top: -300px;
+          animation: spin 60s linear infinite;
+      }
+      
+      .planet-blue {
+          width: 140px;
+          height: 140px;
+          background: radial-gradient(circle at 30% 30%, #60a5fa, #1e3a8a);
+          position: absolute;
+          top: -70px;
+          left: 50%;
+          transform: translateX(-50%);
+      }
+      
+      /* Orange Planet */
+      .orbit-orange {
+          width: 900px;
+          height: 900px;
+          margin-left: -450px;
+          margin-top: -450px;
+          animation: spin 120s linear infinite reverse;
+      }
+      
+      .planet-orange {
+          width: 90px;
+          height: 90px;
+          background: radial-gradient(circle at 30% 30%, #fb923c, #9a3412);
+          position: absolute;
+          top: -45px;
+          left: 50%;
+          transform: translateX(-50%);
+      }
+      
+      /* Spin animation */
+      @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+      }
+      
+      /* ===== LOGIN LAYER ===== */
+      #login-view {
+          position: relative;
+          z-index: 10;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+      
+      /* ===== CARD ===== */
+      .signup-card {
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+          border-radius: 28px;
+          border: 1px solid rgba(255,255,255,0.15);
+          padding: 40px;
+          width: 90%;
+          max-width: 480px;
+          color: white;
+          text-align: center;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      }
+      </style>
+</head>
 </html>
