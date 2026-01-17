@@ -129,15 +129,16 @@ app.post("/signup", upload.single("profilePicture"), async (req, res) => {
     
     let profilePicture = null;
     
-    // Handle cropped image from base64
+    // Handle cropped image from base64 - store directly in DB
     if (croppedImage) {
-      const base64Data = croppedImage.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
-      const filename = Date.now() + "-cropped.jpg";
-      fs.writeFileSync(path.join("public/uploads", filename), buffer);
-      profilePicture = filename;
+      profilePicture = croppedImage; // Store full base64 string
     } else if (req.file) {
-      profilePicture = req.file.filename;
+      // Convert uploaded file to base64
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      profilePicture = base64Image;
+      // Delete the temporary file
+      fs.unlinkSync(req.file.path);
     }
     
     let uniqueId;
@@ -182,18 +183,18 @@ app.post("/update-profile-picture", upload.single("profilePicture"), async (req,
     
     if (req.file) {
       console.log("Updating profile picture for user:", user._id);
-      // Delete old profile picture if it exists
-      if (user.profilePicture) {
-        const oldPath = path.join("public/uploads", user.profilePicture);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
-      }
       
-      user.profilePicture = req.file.filename;
+      // Convert file to base64 and store in MongoDB
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      user.profilePicture = base64Image;
+      
+      // Delete the temporary file
+      fs.unlinkSync(req.file.path);
+      
       await user.save();
-      console.log("Profile picture updated successfully:", req.file.filename);
-      res.json({ success: true, filename: req.file.filename });
+      console.log("Profile picture updated successfully");
+      res.json({ success: true, base64: base64Image });
     } else {
       console.log("No file in request");
       res.status(400).json({ error: "No file uploaded" });
