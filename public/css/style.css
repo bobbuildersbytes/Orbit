@@ -796,6 +796,22 @@ button.icon-btn {
   transition: all var(--transition-fast);
 }
 
+button.icon-btn#refresh-suggestions-btn {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+button.icon-btn#refresh-suggestions-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 1);
+}
+
+button.icon-btn#refresh-suggestions-btn:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
 button.icon-btn svg {
   width: 22px;
   height: 22px;
