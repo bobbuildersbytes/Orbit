@@ -172,26 +172,45 @@ window.suggestionsUI = (function () {
   function showInviteUI(item, candidates) {
     if (!modal || !modal.backdrop) return;
 
-    const confidencePct = Math.round(suggestionConfidence * 100);
-    const listHtml = candidates.length
-      ? candidates
-          .map((f, idx) => {
-            const dist =
-              Number.isFinite(f.distanceKm) && f.distanceKm < 1
-                ? `${Math.round(f.distanceKm * 1000)}m`
-                : Number.isFinite(f.distanceKm)
-                  ? `${f.distanceKm.toFixed(1)}km`
-                  : "distance unknown";
-            return `
-              <label class="invite-row">
-                <input type="radio" name="invite-friend" value="${f.id}" ${idx === 0 ? "checked" : ""} />
-                <div>
-                  <div class="invite-name">${f.name || f.email}</div>
-                  <div class="invite-meta">${dist}${f.isBusy ? " • busy" : ""}</div>
+    const withMeta = candidates.map((f, idx) => {
+      const conf = clampConfidence(computeFriendConfidence(item, f));
+      return {
+        ...f,
+        conf,
+        distLabel: formatDistance(f.distanceKm),
+        idx,
+      };
+    });
+
+    const bestConf = withMeta.length
+      ? Math.max(...withMeta.map((c) => c.conf))
+      : suggestionConfidence;
+    const confidencePct = Math.round(bestConf * 100);
+
+    const listHtml = withMeta.length
+      ? withMeta
+          .map(
+            (f) => `
+              <div class="invite-row" data-user-id="${f.id}" data-idx="${f.idx}">
+                <div class="invite-map-shell">
+                  ${
+                    f.location
+                      ? `<div class="invite-map" data-lat="${f.location.lat}" data-lon="${f.location.lon}" id="invite-map-${f.idx}"></div>`
+                      : '<div class="invite-map missing">No location</div>'
+                  }
                 </div>
-              </label>
-            `;
-          })
+                <div class="invite-copy">
+                  <div class="invite-name">${displayName(f)}</div>
+                  <div class="invite-meta">${f.distLabel}${
+              f.isBusy ? " • busy" : ""
+            }</div>
+                </div>
+                <span class="invite-confidence-pill">${Math.round(
+                  f.conf * 100,
+                )}%</span>
+              </div>
+            `,
+          )
           .join("")
       : '<div class="muted">No available friends right now.</div>';
 
@@ -216,6 +235,8 @@ window.suggestionsUI = (function () {
     const closeBtn = modal.body.querySelector(".invite-close");
     const cancelBtn = modal.body.querySelector('[data-action="cancel"]');
     const sendBtn = modal.body.querySelector('[data-action="send"]');
+    const rows = Array.from(modal.body.querySelectorAll(".invite-row"));
+    const selectedIds = new Set(withMeta.length ? [withMeta[0].id] : []);
 
     const closeModal = () => {
       modal.backdrop.classList.add("hidden");
@@ -230,18 +251,40 @@ window.suggestionsUI = (function () {
       closeModal();
     });
 
+    const updateSendEnabled = () => {
+      if (selectedIds.size) sendBtn?.removeAttribute("disabled");
+      else sendBtn?.setAttribute("disabled", "disabled");
+      rows.forEach((row) => {
+        const id = row.dataset.userId;
+        if (selectedIds.has(id)) row.classList.add("selected");
+        else row.classList.remove("selected");
+      });
+    };
+
+    rows.forEach((row) => {
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = row.dataset.userId;
+        if (!id) return;
+        if (selectedIds.has(id)) selectedIds.delete(id);
+        else selectedIds.add(id);
+        updateSendEnabled();
+      });
+    });
+    updateSendEnabled();
+
     sendBtn?.addEventListener("click", () => {
-      const selected = modal.body.querySelector(
-        'input[name="invite-friend"]:checked',
-      );
-      if (!selected) return;
-      const friend = candidates.find((c) => c.id === selected.value);
-      if (!friend) return;
+      if (!selectedIds.size) return;
       const inviteMessage = buildInviteMessage(item);
-      handlers.onPage(friend.id, inviteMessage);
+      selectedIds.forEach((id) => {
+        const friend = candidates.find((c) => c.id === id);
+        if (friend) handlers.onPage(friend.id, inviteMessage);
+      });
       suggestionConfidence = Math.max(0.2, suggestionConfidence - 0.05);
       closeModal();
     });
+
+    renderMiniMaps(withMeta);
   }
 
   function getAvailableFriendsSorted() {
@@ -270,6 +313,84 @@ window.suggestionsUI = (function () {
   function lookupFriendById(id) {
     if (!context?.friends) return null;
     return context.friends.find((f) => f.id === id || f._id === id);
+  }
+
+  function computeFriendConfidence(item, friend) {
+    const scoreFromAi =
+      item?.data?.scores?.[friend.id] || item?.data?.scores?.[friend._id];
+    if (typeof scoreFromAi === "number") return clampConfidence(scoreFromAi);
+
+    const base =
+      typeof friend.pageHistory?.acceptanceRate === "number"
+        ? friend.pageHistory.acceptanceRate / 100
+        : 0.6;
+    const distance = Number.isFinite(friend.distanceKm)
+      ? friend.distanceKm
+      : null;
+    let distFactor = 0;
+    if (distance !== null) {
+      if (distance < 1) distFactor = 0.1;
+      else if (distance < 5) distFactor = 0.05;
+      else if (distance > 20) distFactor = -0.2;
+    }
+    return clampConfidence(base + distFactor);
+  }
+
+  function clampConfidence(val) {
+    return Math.min(0.95, Math.max(0.35, val));
+  }
+
+  function renderMiniMaps(candidates) {
+    if (typeof L === "undefined") return;
+    candidates.forEach((c) => {
+      if (!c.location || typeof c.location.lat !== "number") return;
+      const el = document.getElementById(`invite-map-${c.idx}`);
+      if (!el) return;
+      const map = L.map(el, {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        tap: false,
+      }).setView([c.location.lat, c.location.lon], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 17,
+        minZoom: 5,
+      }).addTo(map);
+      L.circleMarker([c.location.lat, c.location.lon], {
+        radius: 6,
+        fillColor: "#60a5fa",
+        color: "#ffffff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 1,
+      }).addTo(map);
+      // Center main map when clicking map thumbnail
+      el.addEventListener("click", () => {
+        if (window.mapUI?.centerOn)
+          window.mapUI.centerOn(c.location.lat, c.location.lon);
+      });
+    });
+  }
+
+  function formatDistance(distanceKm) {
+    if (!Number.isFinite(distanceKm)) return "Distance unknown";
+    if (distanceKm < 1) return `${Math.round(distanceKm * 1000)}m away`;
+    return `${distanceKm.toFixed(1)}km away`;
+  }
+
+  function displayName(f) {
+    return (
+      f.name ||
+      f.email ||
+      f.uniqueId ||
+      f.id ||
+      f._id ||
+      "Unknown friend"
+    );
   }
 
   function createInviteModal() {

@@ -2225,9 +2225,9 @@
 
   .invite-row {
     display: flex;
-    gap: 10px;
-    align-items: center;
-    padding: 10px;
+    gap: 12px;
+    align-items: stretch;
+    padding: 12px;
     border: 1px solid rgba(96, 165, 250, 0.2);
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.02);
@@ -2240,6 +2240,44 @@
     background: rgba(96, 165, 250, 0.05);
   }
 
+  .invite-row.selected {
+    border-color: rgba(96, 165, 250, 0.8);
+    background: rgba(96, 165, 250, 0.08);
+    box-shadow: 0 8px 24px rgba(96, 165, 250, 0.12);
+  }
+
+  .invite-map-shell {
+    width: 120px;
+    min-width: 120px;
+    height: 90px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, #1f2937, #111827);
+    position: relative;
+  }
+
+  .invite-map {
+    width: 100%;
+    height: 100%;
+  }
+
+  .invite-map.missing {
+    display: grid;
+    place-items: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+  }
+
+  .invite-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
   .invite-name {
     color: #f5f7ff;
     font-weight: 600;
@@ -2248,6 +2286,16 @@
   .invite-meta {
     color: rgba(255, 255, 255, 0.6);
     font-size: 13px;
+  }
+
+  .invite-confidence-pill {
+    margin-left: auto;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(96, 165, 250, 0.15);
+    color: #cfe4ff;
+    font-size: 12px;
+    border: 1px solid rgba(96, 165, 250, 0.4);
   }
 
   .invite-actions {
