@@ -1,11 +1,14 @@
 {
-  "name": "uoft_hacks_test",
+  "name": "orbit",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:ai": "node scripts/test_ai_only.js",
+    "test:places": "node scripts/test_places_only.js",
+    "verify": "node scripts/verify_apis.js"
   },
   "keywords": [],
   "author": "",
@@ -20,10 +23,8 @@
     "mailersend": "^2.6.0",
     "mongoose": "^9.1.4",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.12",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-local": "^1.0.0",
-    "resend": "^6.7.0"
+    "passport-local": "^1.0.0"
   }
 }

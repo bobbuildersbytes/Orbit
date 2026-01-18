@@ -632,6 +632,14 @@ window.suggestionsUI = (function () {
 
   function buildInviteMessage(item) {
     const detail = (item.detail || "").trim();
+    // Use specific venue name if available for natural phrasing
+    if (item.data && item.data.venue) {
+      // e.g. "Want to meet at Dumpling House?"
+      if (detail) return `Want to meet at ${item.data.venue}? ${detail}`;
+      return `Want to meet at ${item.data.venue}?`;
+    }
+
+    // Fallback
     if (detail) return `Want to meet at "${item.label}"? ${detail}`;
     return `Want to meet at "${item.label}"?`;
   }

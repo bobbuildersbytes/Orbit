@@ -47,10 +47,7 @@ console.log(
   "API Key loaded:",
   process.env.MAILERSEND_API_KEY ? "✅ Yes" : "❌ No",
 );
-console.log(
-  "Verified sender:",
-  process.env.MAILERSEND_FROM || "❌ Not set",
-);
+console.log("Verified sender:", process.env.MAILERSEND_FROM || "❌ Not set");
 if (DEV_MODE_EMAIL) {
   console.log("📧 Dev mode enabled: emails will be logged instead of sent.");
 }
@@ -90,6 +87,14 @@ app.use(
     saveUninitialized: true,
   }),
 );
+
+// Optimization: Public Config Endpoint (No DB lookup required)
+app.get("/api/config", (req, res) => {
+  res.json({
+    amplitudeApiKey: process.env.AMPLITUDE_API_KEY,
+  });
+});
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -396,7 +401,10 @@ app.post("/pager", async (req, res) => {
       fromUser: req.user.id,
       toUser: friend._id,
       message: req.body.message,
-      meta: { emailResponse: JSON.stringify(emailResponse), toEmail: friend.email },
+      meta: {
+        emailResponse: JSON.stringify(emailResponse),
+        toEmail: friend.email,
+      },
     });
     await pageEvent.save();
 
@@ -474,14 +482,6 @@ app.get("/api/me", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-app.get("/api/config", (req, res) => {
-  if (!req.isAuthenticated())
-    return res.status(401).json({ error: "Not authenticated" });
-  res.json({
-    amplitudeApiKey: process.env.AMPLITUDE_API_KEY,
-  });
 });
 
 app.get("/api/presence", async (req, res) => {

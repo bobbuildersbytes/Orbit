@@ -68,7 +68,7 @@ async function getOrCreateAssistant(type) {
       RULES:
       1. detailed: Look at the "places" list. Pick valid, named places.
       2. social: IF friends are nearby, prioritize meeting ONE specific friend per suggestion.
-         - Prioritize friends with LOWER "distanceKm".
+         - Prioritize friends with LOWER "distance Km".
          - Mention the distance in the reasoning.
          - IF NO FRIENDS are available or suitable, suggest a solo activity for the user.
       3. specific: 
@@ -101,7 +101,7 @@ async function getOrCreateAssistant(type) {
       1. Label (Title): 
          - If with a friend: "[Activity] at [Place] with [Person]".
          - If solo: "[Activity] at [Place]".
-      2. Detail (Description): MUST be a description of the location/venue itself. do not mention the person here.
+      2. Detail (Description): MUST be a description of the location/venue itself. DO NOT mention the person here.
       3. Reason (Reasoning): The strategic reasoning for this suggestion.
       4. Action Label (Button): 
          - If with a friend: "Invite [First Name]".
