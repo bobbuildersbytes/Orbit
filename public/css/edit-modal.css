@@ -1,13 +1,15 @@
 /* ============================================
-     EDIT SUGGESTION MODAL - DARK INDIGO THEME
+     EDIT SUGGESTION MODAL & PAGER MODAL - DARK INDIGO THEME
    ============================================ */
 
-#edit-suggestion-modal-overlay.pager-modal-overlay {
+#edit-suggestion-modal-overlay.pager-modal-overlay,
+#pager-modal-overlay.pager-modal-overlay {
   background: rgba(15, 23, 42, 0.75); /* Darker backdrop */
   backdrop-filter: blur(8px);
 }
 
-#edit-suggestion-modal-overlay .pager-modal {
+#edit-suggestion-modal-overlay .pager-modal,
+#pager-modal-overlay .pager-modal {
   background: #111827; /* Gray 900 / Deep Indigo Base */
   border: 1px solid rgba(79, 70, 229, 0.3); /* Indigo 600 border */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -16,14 +18,16 @@
   padding: 24px;
 }
 
-#edit-suggestion-modal-overlay .invite-title {
+#edit-suggestion-modal-overlay .invite-title,
+#pager-modal-overlay .pager-title {
   color: #fff;
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 4px;
 }
 
-#edit-suggestion-modal-overlay .invite-detail {
+#edit-suggestion-modal-overlay .invite-detail,
+#pager-modal-overlay .pager-subtitle {
   color: #9ca3af; /* Gray 400 */
   font-size: 0.875rem;
 }
@@ -35,7 +39,8 @@
   display: block;
 }
 
-#edit-suggestion-modal-overlay textarea.pager-textarea {
+#edit-suggestion-modal-overlay textarea.pager-textarea,
+#pager-modal-overlay textarea.pager-textarea {
   background: #1f2937; /* Gray 800 */
   border: 1px solid #374151; /* Gray 700 */
   color: #fff;
@@ -47,14 +52,16 @@
   resize: vertical;
 }
 
-#edit-suggestion-modal-overlay textarea.pager-textarea:focus {
+#edit-suggestion-modal-overlay textarea.pager-textarea:focus,
+#pager-modal-overlay textarea.pager-textarea:focus {
   border-color: #6366f1; /* Indigo 500 */
   outline: none;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 /* Friend List Container */
-#edit-friend-list.invite-list {
+#edit-friend-list.invite-list,
+#pager-user-card {
   background: transparent !important;
   border: none !important;
   gap: 12px;
@@ -63,76 +70,75 @@
 }
 
 /* Friend Items */
-#edit-friend-list .invite-row {
+#edit-friend-list .invite-row,
+#pager-user-card .invite-row {
   background: #1f2937; /* Gray 800 */
   border: 1px solid #374151; /* Gray 700 */
   border-radius: 12px;
   margin: 0;
   padding: 12px; /* reduced padding inside */
   transition: all 0.2s ease;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-#edit-friend-list .invite-row:hover {
+#edit-friend-list .invite-row:hover,
+#pager-user-card .invite-row:hover {
   background: #374151; /* Gray 700 */
   border-color: #6b7280;
   transform: translateY(-1px);
 }
 
-/* Selected State - User Request: "When selected, each name should be highlighted" */
+/* Selected State */
 #edit-friend-list .invite-row.selected {
-  background: #1e1b4b; /* Indigo 950 - Very Dark Blueish Indigo */
+  background: #1e1b4b; /* Indigo 950 */
   border: 1px solid #6366f1; /* Indigo 500 */
   box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.2),
     inset 0 0 0 1px rgba(99, 102, 241, 0.1);
 }
 
-#edit-friend-list .invite-row.selected .invite-name {
+#edit-friend-list .invite-row.selected .invite-name,
+#pager-user-card .invite-name {
   color: #fff;
   font-weight: 700;
 }
 
-#edit-friend-list .invite-row .selection-check {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 16px;
-  color: #6366f1;
-}
-
 /* Buttons */
-#edit-suggestion-modal-overlay .pager-actions button {
+#edit-suggestion-modal-overlay .pager-actions button,
+#pager-modal-overlay .pager-actions button {
   margin-top: 24px;
 }
 
-#edit-save-btn {
+#edit-save-btn,
+#pager-send-btn {
   background: #4f46e5 !important;
   color: white;
 }
-#edit-save-btn:hover {
+#edit-save-btn:hover,
+#pager-send-btn:hover {
   background: #4338ca !important;
 }
 
-#edit-cancel-btn {
+#edit-cancel-btn,
+#pager-cancel-btn {
   background: transparent !important;
   border: 1px solid #4b5563 !important;
   color: #cbd5e1 !important;
 }
-#edit-cancel-btn:hover {
+#edit-cancel-btn:hover,
+#pager-cancel-btn:hover {
   background: rgba(255, 255, 255, 0.05) !important;
   color: white !important;
 }
 
 /* Map Shell overrides */
-#edit-friend-list .invite-map-shell {
+#edit-friend-list .invite-map-shell,
+#pager-user-card .invite-map-shell {
   width: 60px; /* Smaller thumbnail */
   height: 60px;
   border-radius: 8px;
   border: 1px solid #4b5563;
+  overflow: hidden;
 }

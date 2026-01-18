@@ -93,11 +93,13 @@ window.suggestionsUI = (function () {
       }
 
       if (item.type === "activity_suggestion") {
-        actionLabel = "Invite";
-        if (involvedNames.length === 1) {
-          actionLabel = `Invite ${involvedNames[0]}`;
-        } else if (involvedNames.length > 1) {
-          actionLabel = "Invite friends";
+        if (!actionLabel || actionLabel === "Go") {
+          actionLabel = "Invite";
+          if (involvedNames.length === 1) {
+            actionLabel = `Invite ${involvedNames[0]}`;
+          } else if (involvedNames.length > 1) {
+            actionLabel = "Invite friends";
+          }
         }
       }
 
@@ -197,10 +199,36 @@ window.suggestionsUI = (function () {
 
     // Initialize Selection from existing item data
     if (item.data) {
+      const addId = (id) => {
+        if (!id) return;
+        // Verify this ID exists in friends, or try to resolve by name
+        let found = lookupFriendById(id);
+        if (!found && context && context.friends) {
+          // Fallback: Try to find by name match
+          const lowerId = String(id).toLowerCase();
+          found = context.friends.find(
+            (f) =>
+              (f.name && f.name.toLowerCase() === lowerId) ||
+              (f.email && f.email.toLowerCase() === lowerId) ||
+              displayName(f).toLowerCase().includes(lowerId),
+          );
+        }
+
+        if (found) {
+          selectedIds.add(String(found.id || found._id));
+        } else {
+          // If purely just an ID that exists but maybe not in our partial context list?
+          // Or if we trust the ID blindly?
+          // Better to only select if we can map it to a rendered row.
+          // But let's trust it if it looks like an ID, just in case.
+          selectedIds.add(String(id));
+        }
+      };
+
       if (item.data.userIds) {
-        item.data.userIds.forEach((id) => selectedIds.add(String(id)));
+        item.data.userIds.forEach(addId);
       } else if (item.data.userId) {
-        selectedIds.add(String(item.data.userId));
+        addId(item.data.userId);
       }
     }
 

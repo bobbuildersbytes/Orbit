@@ -3184,3 +3184,46 @@ button:disabled {
 .friend-multiselect input[type="checkbox"] {
   display: none;
 }
+
+/* ============================================
+     TOAST NOTIFICATIONS
+     ============================================ */
+
+#toast-container {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-tooltip);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.toast {
+  background: white;
+  color: var(--color-gray-900);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 250px;
+  max-width: 350px;
+  pointer-events: auto;
+  animation: slide-in-right var(--transition-base) forwards;
+  border-left: 4px solid var(--color-primary-500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.toast.fade-out {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all var(--transition-base);
+}
+
+.toast-icon {
+  font-size: var(--font-size-lg);
+}

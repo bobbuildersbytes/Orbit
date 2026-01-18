@@ -72,7 +72,7 @@ async function getOrCreateAssistant(type) {
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       
       OUTPUT:
-      Write a natural language summary of the location that does not contain the friend's name in it. For every suggestion, mentioning the SPECIFIC friend's ID if possible.
+      Write a natural language summary of the location that does not contain the friend's name in it. For every suggestion, mention the SPECIFIC friend's ID if possible.
     `;
   } else {
     name = "Orbit JSON Formatter";
@@ -84,17 +84,28 @@ async function getOrCreateAssistant(type) {
       Return a JSON object with a "suggestions" array.
       Each suggestion must have: type, label, detail, reason, actionLabel, and data.
       
-      CRITICAL:
-      - If a suggestion involves a person, set "type": "activity_suggestion" (or "page_friend" if just saying hi).
-      - Put the friend's exact ID in data.userId.
-      - Ensure "label" explicitly names the person (e.g. "Dinner with Alice").
-      
+      CRITICAL FORMATTING RULES:
+      1. Label (Title): MUST be in the format "[Activity] at [Place] with [Person]".
+         Example: "Coffee at Starbucks with Alice" or "Dinner at The Fox with Bob".
+      2. Detail (Description): MUST be a description of the location/venue itself. do not mention the person here.
+      3. Reason (Reasoning): The strategic reasoning for this suggestion.
+      4. Action Label (Button): MUST be "Invite [First Name of Person]".
+         Example: "Invite Alice".
+      5. Data: 
+         - "type": "activity_suggestion"
+         - "userId": The friend's exact ID.
+         - "venue": The name of the place.
+
       Example structure:
       "suggestions": [
-        "type": "activity_suggestion",
-        "label": "Coffee with Alice",
-        "detail": "At Starbucks...",
-        "data": "userId": "123", "venue": "..."
+        {{
+          "type": "activity_suggestion",
+          "label": "Coffee at Tyms with Alice",
+          "detail": "A cozy cafe with great espresso...",
+          "reason": "It is close to both of you.",
+          "actionLabel": "Invite Alice",
+          "data": {{ "userId": "123", "venue": "Tyms" }}
+        }}
       ]
       
       RETURN ONLY JSON. NO MARKDOWN.

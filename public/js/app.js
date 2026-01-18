@@ -433,6 +433,9 @@ function startPolling() {
   pollTimer = setInterval(poll, 5000);
 }
 
+// Track last known presences for UI lookups
+let lastKnownPresences = [];
+
 async function loadPresence() {
   if (!currentUser) return;
   const res = await fetch("/api/presence");
@@ -440,6 +443,7 @@ async function loadPresence() {
   const data = await res.json();
 
   const presences = data.presences || [];
+  lastKnownPresences = presences; // Store for lookup
   renderUsers(presences);
 
   // Filter self from map markers (we have a custom dot now)
@@ -600,19 +604,106 @@ async function removeFriend(friendId, friendName) {
 
 async function openPagingModal(toUserId) {
   const overlay = document.getElementById("pager-modal-overlay");
+  const modalContent = overlay.querySelector(".pager-modal"); // Container
   const input = document.getElementById("pager-message-input");
   const cancelBtn = document.getElementById("pager-cancel-btn");
   const sendBtn = document.getElementById("pager-send-btn");
+  const titleEl = overlay.querySelector(".pager-title");
+  const subtitleEl = overlay.querySelector(".pager-subtitle");
+
+  // Find user data
+  const targetUser = lastKnownPresences.find((u) => u.userId === toUserId) || {
+    name: "Friend",
+    userId: toUserId,
+  };
+
+  // Inject User Card if not exists
+  let userCardContainer = document.getElementById("pager-user-card");
+  if (!userCardContainer) {
+    userCardContainer = document.createElement("div");
+    userCardContainer.id = "pager-user-card";
+    // Insert after subtitle
+    subtitleEl.parentNode.insertBefore(userCardContainer, input);
+  }
+
+  // Calculate distance string
+  let distanceText = "";
+  if (lastLat && lastLon && targetUser.lat && targetUser.lon) {
+    const dist = getDistanceFromLatLonInKm(
+      lastLat,
+      lastLon,
+      targetUser.lat,
+      targetUser.lon,
+    );
+    distanceText =
+      dist < 1
+        ? `${Math.round(dist * 1000)}m away`
+        : `${dist.toFixed(1)}km away`;
+  } else {
+    distanceText = "Location unknown";
+  }
+
+  // Render User Card
+  userCardContainer.innerHTML = `
+    <div class="invite-row selected" style="cursor: default">
+      <div class="invite-map-shell">
+        ${targetUser.lat ? `<div id="pager-mini-map" style="width:100%; height:100%"></div>` : '<div class="invite-map missing">No Loc</div>'}
+      </div>
+      <div>
+        <div class="invite-name">${targetUser.name || targetUser.email || "Friend"}</div>
+        <div class="invite-detail" style="font-size:0.8em; opacity:0.8">${distanceText} ${targetUser.isBusy ? "• Busy" : ""}</div>
+      </div>
+    </div>
+  `;
+
+  if (titleEl)
+    titleEl.textContent = `Page ${targetUser.name ? targetUser.name.split(" ")[0] : "Friend"}`;
+  if (subtitleEl)
+    subtitleEl.textContent = "Send a quick message or location request.";
 
   if (!overlay || !input || !cancelBtn || !sendBtn) {
     console.error("Missing pager modal elements");
     return prompt("Optional message?");
   }
 
+  // Init Mini Map
+  if (targetUser.lat && window.L) {
+    setTimeout(() => {
+      const mapEl = document.getElementById("pager-mini-map");
+      if (mapEl) {
+        try {
+          const m = L.map(mapEl, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            tap: false,
+          }).setView([targetUser.lat, targetUser.lon], 13);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+          }).addTo(m);
+          L.circleMarker([targetUser.lat, targetUser.lon], {
+            radius: 5,
+            fillColor: "#6366f1",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 1,
+          }).addTo(m);
+        } catch (e) {
+          console.error("Mini map error", e);
+        }
+      }
+    }, 100);
+  }
+
   // Reset UI
   input.value = "";
   overlay.classList.remove("hidden");
-  setTimeout(() => input.focus(), 50); // Small delay to ensure visibility
+  setTimeout(() => input.focus(), 50);
 
   return new Promise((resolve) => {
     const close = () => {
@@ -657,6 +748,8 @@ async function openPagingModal(toUserId) {
   });
 }
 
+// ... existing code ...
+
 async function pageUser(toUserId, presetMessage) {
   let message = presetMessage;
   if (typeof message !== "string") {
@@ -677,7 +770,7 @@ async function pageUser(toUserId, presetMessage) {
   }
   // Orbit's /pager redirects, so fetch might follow it.
   // Ideally we change /pager to return JSON.
-  alert("Page sent!");
+  showToast("Page sent!");
 
   // Track with time context
   const now = new Date();
@@ -693,11 +786,51 @@ async function pageUser(toUserId, presetMessage) {
       "Thursday",
       "Friday",
       "Saturday",
+      "Sunday",
     ][now.getDay()],
     timestamp: now.toISOString(),
     userLat: lastLat,
     userLon: lastLon,
   });
+}
+
+function showToast(message, type = "success") {
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+
+  const icon = type === "success" ? "✅" : "ℹ️";
+
+  toast.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  // Auto remove
+  setTimeout(() => {
+    toast.classList.add("fade-out");
+    // Fallback remove after transition duration (350ms approx)
+    setTimeout(() => {
+      try {
+        if (document.body.contains(toast)) {
+          toast.remove();
+          if (container.children.length === 0) {
+            container.remove();
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 400);
+  }, 3000);
 }
 
 function syncBusyUI() {
