@@ -74,6 +74,10 @@ async function getOrCreateAssistant(type) {
          - You MUST identify the friend by their unique "id" or "_id" from the JSON context.
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       
+      USER HISTORY (Recent Decisions):
+      The input JSON context will contain a "history" array of recent suggestions and my decisions (Accept/Reject).
+      Analyze this history to guide your choice (e.g. if I rejected Sushi, don't suggest Sushi today. If I accept Coffee often, suggest Coffee).
+
       OUTPUT:
       Write a natural language summary of the location.
       CRITICAL: For every suggestion, you MUST explicitly mention the Friend's ID in parentheses like this: (FriendID: 123abc456).

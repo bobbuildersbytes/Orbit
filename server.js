@@ -618,9 +618,40 @@ app.get("/api/suggestions/context", async (req, res) => {
     console.log("Checking AI config...");
     if (aiHookConfigured()) {
       console.log("AI is configured, calling hook...");
+
+      // Fetch User History from Amplitude
+      let history = [];
+      const { fetchAmplitudeUserContext } = require("./utils/amplitudeExport");
+      const ampContext = await fetchAmplitudeUserContext(
+        currentUser._id.toString(),
+        { limit: 1000 }, // Fetch more to filter down (types param didn't work)
+      );
+
+      if (ampContext && ampContext.events) {
+        console.log(`DEBUG: Resolved Amplitude ID: ${ampContext.amplitudeId}`);
+        console.log(`DEBUG: Raw Event Count: ${ampContext.events.length}`);
+
+        // Log types to see what we are getting
+        const rawTypes = [
+          ...new Set(ampContext.events.map((e) => e.eventType)),
+        ];
+        console.log(`DEBUG: Event Types Found: ${JSON.stringify(rawTypes)}`);
+
+        history = ampContext.events
+          .filter((e) => e.eventType === "suggestion_decision")
+          .slice(0, 15) // Top 15 most recent
+          .map((e) => ({
+            decision: e.eventProperties.decision, // "Accept" / "Reject"
+            label: e.eventProperties.label, // "Coffee at X"
+            venue: e.eventProperties.venue, // "Starbucks"
+            time: e.time,
+          }));
+        console.log(`Fetched ${history.length} Amplitude history events.`);
+      }
+
       const aiResponse = await callAIHook({
         type: "page_suggestions",
-        context: aiContext,
+        context: { ...aiContext, history },
       });
       console.log("AI Hook response received:", aiResponse ? "Yes" : "No");
 

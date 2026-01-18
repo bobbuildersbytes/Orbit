@@ -2,17 +2,57 @@ const AMPLITUDE_API_URL =
   process.env.AMPLITUDE_API_URL || "https://amplitude.com/api/2";
 
 function amplitudeConfigured() {
-  return Boolean(process.env.AMPLITUDE_API_KEY && process.env.AMPLITUDE_API_SECRET);
+  return Boolean(
+    process.env.AMPLITUDE_API_KEY && process.env.AMPLITUDE_API_SECRET,
+  );
+}
+
+async function resolveAmplitudeId(userId) {
+  const url = `${AMPLITUDE_API_URL}/usersearch?user=${encodeURIComponent(
+    userId,
+  )}`;
+  const auth = Buffer.from(
+    `${process.env.AMPLITUDE_API_KEY}:${process.env.AMPLITUDE_API_SECRET}`,
+  ).toString("base64");
+
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    // API returns { matches: [ { amplitude_id: 123, ... } ] }
+    if (json.matches && json.matches.length > 0) {
+      return json.matches[0].amplitude_id;
+    }
+    return null;
+  } catch (err) {
+    console.error("Failed to resolve Amplitude ID:", err.message);
+    return null;
+  }
 }
 
 async function fetchAmplitudeUserContext(userId, opts = {}) {
   if (!amplitudeConfigured()) return null;
   if (!userId) return null;
 
-  const { limit = 50 } = opts;
-  const url = `${AMPLITUDE_API_URL}/useractivity?user=${encodeURIComponent(
-    userId,
-  )}&limit=${limit}`;
+  // 1. Resolve to Amplitude integer ID if it's a string
+  let amplitudeId = userId;
+  if (typeof userId !== "number") {
+    amplitudeId = await resolveAmplitudeId(userId);
+    if (!amplitudeId) {
+      console.warn(`Could not resolve Amplitude ID for user: ${userId}`);
+      return null;
+    }
+  }
+
+  const { limit = 50, types } = opts;
+  let url = `${AMPLITUDE_API_URL}/useractivity?user=${amplitudeId}&limit=${limit}`;
+
+  if (types && Array.isArray(types) && types.length > 0) {
+    // Amplitude expects a JSON array for types
+    url += `&types=${encodeURIComponent(JSON.stringify(types))}`;
+  }
 
   const auth = Buffer.from(
     `${process.env.AMPLITUDE_API_KEY}:${process.env.AMPLITUDE_API_SECRET}`,
@@ -34,19 +74,24 @@ async function fetchAmplitudeUserContext(userId, opts = {}) {
       (json.events || []).map((e) => ({
         eventType: e.event_type,
         time: e.event_time,
-        country: e.country,
-        city: e.city,
-        device: e.device,
-        platform: e.platform,
-        os: e.os,
         eventProperties: e.event_properties || {},
         userProperties: e.user_properties || {},
-        locationLat: e.location_lat,
-        locationLng: e.location_lng,
+        // ... (other fields as needed)
       })) || [];
+
+    // DEBUG: Log unique event types found to confirm we are seeing data
+    const types = [...new Set(events.map((e) => e.eventType))];
+    console.log(
+      `DEBUG: Amplitude returned ${events.length} events. Types:`,
+      types,
+    );
+    if (events.length > 0) {
+      console.log("DEBUG: Sample event:", JSON.stringify(events[0], null, 2));
+    }
 
     return {
       userId,
+      amplitudeId,
       userProperties: json.userData?.userProperties || {},
       events,
     };
