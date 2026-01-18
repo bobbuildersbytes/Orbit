@@ -17,6 +17,7 @@ async function bootstrap() {
   if (currentUser) {
     // Initialize Auth UI with injected user
     authUI.setUser(currentUser);
+    updateAmplitudeIdentity(); // Identify immediately with injected user
 
     // Initial fetch of presence
     await fetchMe();
@@ -48,8 +49,9 @@ async function fetchMe() {
       isBusy = !!data.presence.isBusy;
       syncAvailabilityUI(isAvailable);
       syncBusyUI();
-      updateAmplitudeIdentity();
     }
+    // Always (re)identify after /api/me to ensure Amplitude user_id is set
+    updateAmplitudeIdentity();
   } catch (err) {
     console.error(err);
   }

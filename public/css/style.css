@@ -2224,10 +2224,11 @@
   }
 
   .invite-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
     gap: 12px;
-    align-items: stretch;
-    padding: 12px;
+    align-items: center;
+    padding: 10px 12px;
     border: 1px solid rgba(96, 165, 250, 0.2);
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.02);
@@ -2247,9 +2248,9 @@
   }
 
   .invite-map-shell {
-    width: 120px;
-    min-width: 120px;
-    height: 90px;
+    width: 110px;
+    min-width: 110px;
+    height: 80px;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2281,6 +2282,7 @@
   .invite-name {
     color: #f5f7ff;
     font-weight: 600;
+    font-size: 15px;
   }
 
   .invite-meta {
@@ -2289,8 +2291,12 @@
   }
 
   .invite-confidence-pill {
-    margin-left: auto;
-    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    height: 32px;
+    padding: 0 10px;
     border-radius: 999px;
     background: rgba(96, 165, 250, 0.15);
     color: #cfe4ff;
