@@ -13,22 +13,6 @@
       href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css"
     />
     <link rel="stylesheet" href="/css/style.css" />
-    <!-- Amplitude SDK with fallback -->
-    <script
-      id="amplitude-sdk"
-      src="https://cdn.amplitude.com/libs/analytics-browser-2.11.0-min.js.gz"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-      onerror="
-        (function() {
-          var s = document.createElement('script');
-          s.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.11.0-min.js';
-          s.crossOrigin = 'anonymous';
-          s.referrerPolicy = 'no-referrer';
-          document.head.appendChild(s);
-        })();
-      "
-    ></script>
   </head>
   <body>
     <!-- Inject User Data for Client-Side JS -->
@@ -270,14 +254,36 @@
                 </form>
                 <canvas
                   id="crop-canvas"
-                  style="display: none; max-width: 100%; margin-top: var(--space-3); border: 1px solid #ccc;"
+                  style="
+                    display: none;
+                    max-width: 100%;
+                    margin-top: var(--space-3);
+                    border: 1px solid #ccc;
+                  "
                 ></canvas>
                 <div
                   id="crop-controls"
-                  style="display: none; gap: var(--space-2); margin-top: var(--space-2);"
+                  style="
+                    display: none;
+                    gap: var(--space-2);
+                    margin-top: var(--space-2);
+                  "
                 >
-                  <button type="button" id="save-cropped-pic" style="width: 100%;">Save</button>
-                  <button type="button" id="cancel-crop" class="secondary" style="width: 100%;">Cancel</button>
+                  <button
+                    type="button"
+                    id="save-cropped-pic"
+                    style="width: 100%"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    id="cancel-crop"
+                    class="secondary"
+                    style="width: 100%"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
 
@@ -387,6 +393,7 @@
             cropCanvas.style.display = "block";
             cropControls.style.display = "flex";
             choosePicBtn.style.display = "none";
+
             const img = new Image();
             img.onload = () => {
               const canvas = cropCanvas;
