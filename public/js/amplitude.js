@@ -1,5 +1,5 @@
 const CONFIG = {
-  API_KEY: "3439055427ad70308072044304899533", // Public key, safe to expose
+  API_KEY: "d1fc1c9c8d13e32e0719155451fbebcc", // Public key, safe to expose
 };
 
 window.amplitudeClient = (function () {
