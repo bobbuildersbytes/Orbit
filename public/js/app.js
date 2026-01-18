@@ -452,7 +452,7 @@ async function loadPresence() {
   );
   mapUI.updateMarkers(others);
 
-  amplitudeClient.track("presence_polled");
+  mapUI.updateMarkers(others);
 }
 
 function renderUsers(users) {
@@ -748,8 +748,6 @@ async function openPagingModal(toUserId) {
   });
 }
 
-// ... existing code ...
-
 async function pageUser(toUserId, presetMessage) {
   let message = presetMessage;
   if (typeof message !== "string") {
@@ -792,7 +790,32 @@ async function pageUser(toUserId, presetMessage) {
     userLat: lastLat,
     userLon: lastLon,
   });
+  return res;
 }
+
+window.trackSuggestionDecision = function (item, decision, friendIds = []) {
+  if (typeof amplitudeClient === "undefined") return;
+
+  // Ensure friendIds is an array
+  const fidArray = Array.isArray(friendIds) ? friendIds : [friendIds];
+
+  const now = new Date();
+  const location = lastLat && lastLon ? { lat: lastLat, lon: lastLon } : null;
+
+  amplitudeClient.track("suggestion_decision", {
+    decision: decision, // "Accept" or "Reject"
+    label: item.label,
+    type: item.type,
+    venue: item.detail || "No Venue Details",
+    friendIds: fidArray,
+    timestamp: now.toISOString(),
+    hour: now.getHours(),
+    dayOfWeek: now.getDay(),
+    dayName: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][now.getDay()],
+    userLat: location?.lat,
+    userLon: location?.lon,
+  });
+};
 
 function showToast(message, type = "success") {
   let container = document.getElementById("toast-container");

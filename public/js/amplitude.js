@@ -12,29 +12,33 @@ window.amplitudeClient = (function () {
   async function initFromServer() {
     if (initialized) return;
     try {
-      // In a real scenario, we might fetch the key from the server if not hardcoded
-      // const res = await fetch('/api/config/amplitude');
-      // const data = await res.json();
-      // const key = data.apiKey;
+      const res = await fetch("/api/config");
+      if (!res.ok) throw new Error("Failed to load config");
+      const data = await res.json();
+      const key = data.amplitudeApiKey || CONFIG.API_KEY;
 
-      if (window.amplitude) {
-        window.amplitude.init(
-          CONFIG.API_KEY,
-          undefined,
-          {
-            defaultTracking: {
-              sessions: true,
-              pageViews: true,
-              formInteractions: true,
-              fileDownloads: true,
-            },
-            serverZone: CONFIG.SERVER_ZONE === "EU" ? "EU" : "US",
-          },
+      if (window.amplitude && key) {
+        console.log(
+          "Amplitude: Initialized with key",
+          key.substring(0, 5) + "...",
         );
+        window.amplitude.init(key, undefined, {
+          defaultTracking: {
+            sessions: true,
+            pageViews: true,
+            formInteractions: true,
+            fileDownloads: true,
+          },
+          logLevel: "INFO",
+          serverZone: CONFIG.SERVER_ZONE === "EU" ? "EU" : "US",
+        });
         initialized = true;
-        console.log("Amplitude initialized");
       } else {
-        console.warn("Amplitude SDK not loaded; events will be dropped");
+        console.warn("Amplitude SDK not loaded or key missing", {
+          hasAmplitude: !!window.amplitude,
+          hasKey: !!key,
+          keyVal: key ? "Present" : "Missing",
+        });
       }
     } catch (err) {
       console.error("Amplitude init failed", err);
@@ -51,7 +55,7 @@ window.amplitudeClient = (function () {
     }
 
     const userId =
-      user.uniqueId || user.id || user._id || user.email || "anonymous";
+      user._id || user.id || user.uniqueId || user.email || "anonymous";
     window.amplitude.setUserId(String(userId));
 
     const identify = new window.amplitude.Identify();
@@ -71,7 +75,11 @@ window.amplitudeClient = (function () {
     };
 
     const location = opts.location || user.location;
-    if (location && typeof location.lat === "number" && typeof location.lon === "number") {
+    if (
+      location &&
+      typeof location.lat === "number" &&
+      typeof location.lon === "number"
+    ) {
       props.locationLat = location.lat;
       props.locationLon = location.lon;
     }
@@ -88,12 +96,24 @@ window.amplitudeClient = (function () {
   function track(event, properties = {}) {
     if (!initialized || !window.amplitude) {
       if (!warnedNotReady) {
-        console.warn("Amplitude not ready; dropping events. Check API key and SDK load.");
+        console.warn(
+          "Amplitude not ready; dropping events. Check API key and SDK load.",
+        );
         warnedNotReady = true;
       }
       return;
     }
-    window.amplitude.track(event, properties);
+    try {
+      if (typeof window.amplitude.logEvent === "function") {
+        window.amplitude.logEvent(event, properties);
+      } else if (typeof window.amplitude.track === "function") {
+        window.amplitude.track(event, properties);
+      } else {
+        console.warn("Amplitude: Neither logEvent nor track is available");
+      }
+    } catch (e) {
+      console.error("Amplitude Wrapper: Track failed exception", e);
+    }
   }
 
   return { initFromServer, track, identifyUser };
