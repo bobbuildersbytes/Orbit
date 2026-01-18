@@ -14,7 +14,8 @@ const PageEvent = require("./models/PageEvent");
 // const Presence = require("./models/Presence"); // Removed
 const { MailerSend, EmailParams, Recipient } = require("mailersend");
 const { aiHookConfigured, callAIHook } = require("./utils/aiHook");
-const { fetchNearbyPlaces } = require("./utils/places");
+// const { fetchNearbyPlaces } = require("./utils/places"); // Moved to suggestionEngine
+const suggestionEngine = require("./utils/suggestionEngine");
 
 const app = express();
 const port = 8008;
@@ -69,7 +70,11 @@ const upload = multer({ storage: storage });
 // Connect to MongoDB
 mongoose
   .connect(mongoUri)
-  .then(() => console.log("MongoDB connected"))
+  .then(() => {
+    console.log("MongoDB connected");
+    // Trigger AI generation on startup
+    suggestionEngine.prefetchAll();
+  })
   .catch((err) => console.log(err));
 
 // Middleware
@@ -607,104 +612,16 @@ app.post("/api/page-events/:id/accept", async (req, res) => {
   }
 });
 
-// Basic in-memory cache
-const placesCache = new Map(); // Key: "lat,lon" (rounded), Value: { data, timestamp }
-const amplitudeCache = new Map(); // Key: userId, Value: { data, timestamp }
-const CACHE_TTL = 60 * 1000; // 1 minute
-
 app.get("/api/suggestions/context", async (req, res) => {
   if (!req.isAuthenticated())
     return res.status(401).json({ error: "Login required" });
   try {
-    const currentUser = await User.findById(req.user.id);
-    if (!currentUser) return res.status(404).json({ error: "User not found" });
-    const aiContext = await buildPageContext(currentUser);
-
-    // Fetch nearby places
-    let places = [];
-    if (currentUser.lat && currentUser.lon) {
-      // Round to 3 decimals (~100m) for caching key
-      const cacheKey = `${currentUser.lat.toFixed(3)},${currentUser.lon.toFixed(3)}`;
-      const cached = placesCache.get(cacheKey);
-
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL * 5) {
-        // 5 min cache for places
-        places = cached.data;
-      } else {
-        places = await fetchNearbyPlaces(currentUser.lat, currentUser.lon);
-        placesCache.set(cacheKey, { data: places, timestamp: Date.now() });
-      }
-    }
-    aiContext.places = places; // Add to context
-
-    let suggestions = fallbackSuggestions(aiContext.friends, aiContext.user);
-
-    console.log("Checking AI config...");
-    if (aiHookConfigured()) {
-      console.log("AI is configured, calling hook...");
-
-      // Fetch User History from Amplitude
-      let history = [];
-      const { fetchAmplitudeUserContext } = require("./utils/amplitudeExport");
-
-      let ampContext = null;
-      const ampCacheKey = currentUser._id.toString();
-      const cachedAmp = amplitudeCache.get(ampCacheKey);
-
-      if (cachedAmp && Date.now() - cachedAmp.timestamp < CACHE_TTL) {
-        ampContext = cachedAmp.data;
-        console.log("Using cached Amplitude context");
-      } else {
-        ampContext = await fetchAmplitudeUserContext(
-          currentUser._id.toString(),
-          { limit: 1000 }, // Fetch more to filter down (types param didn't work)
-        );
-        if (ampContext) {
-          amplitudeCache.set(ampCacheKey, {
-            data: ampContext,
-            timestamp: Date.now(),
-          });
-        }
-      }
-
-      if (ampContext && ampContext.events) {
-        console.log(`DEBUG: Resolved Amplitude ID: ${ampContext.amplitudeId}`);
-        console.log(`DEBUG: Raw Event Count: ${ampContext.events.length}`);
-
-        // Log types to see what we are getting
-        const rawTypes = [
-          ...new Set(ampContext.events.map((e) => e.eventType)),
-        ];
-        console.log(`DEBUG: Event Types Found: ${JSON.stringify(rawTypes)}`);
-
-        history = ampContext.events
-          .filter((e) => e.eventType === "suggestion_decision")
-          .slice(0, 15) // Top 15 most recent
-          .map((e) => ({
-            decision: e.eventProperties.decision, // "Accept" / "Reject"
-            label: e.eventProperties.label, // "Coffee at X"
-            venue: e.eventProperties.venue, // "Starbucks"
-            time: e.time,
-          }));
-        console.log(`Fetched ${history.length} Amplitude history events.`);
-      }
-
-      const aiResponse = await callAIHook({
-        type: "page_suggestions",
-        context: { ...aiContext, history },
-      });
-      console.log("AI Hook response received:", aiResponse ? "Yes" : "No");
-
-      if (aiResponse?.suggestions?.length) {
-        suggestions = aiResponse.suggestions;
-      }
-    } else {
-      console.log("AI not configured");
-    }
-
-    res.json({ suggestions, context: aiContext });
+    const { suggestions, context } = await suggestionEngine.getSuggestions(
+      req.user,
+    );
+    res.json({ suggestions, context });
   } catch (err) {
-    console.error("Error building suggestions context:", err);
+    console.error("Error getting suggestions:", err);
     res.status(500).json({ error: err.message, suggestions: [] });
   }
 });
@@ -714,172 +631,4 @@ app.listen(port, () => {
 });
 
 // ---------- Helper functions ----------
-const EARTH_RADIUS_KM = 6371;
-
-function computeDistanceKm(lat1, lon1, lat2, lon2) {
-  if (
-    typeof lat1 !== "number" ||
-    typeof lon1 !== "number" ||
-    typeof lat2 !== "number" ||
-    typeof lon2 !== "number"
-  ) {
-    return null;
-  }
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(EARTH_RADIUS_KM * c * 10) / 10; // One decimal place
-}
-
-async function buildPageContext(currentUser) {
-  const now = new Date();
-  const friendIds = currentUser.friends || [];
-  const friends = await User.find({
-    _id: { $in: friendIds },
-  }).select(
-    "firstName lastName email lat lon available isBusy lastSeen uniqueId profilePicture",
-  );
-
-  const events = await PageEvent.find({
-    fromUser: currentUser._id,
-    toUser: { $in: friendIds },
-  })
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .lean();
-
-  const stats = new Map();
-  events.forEach((evt) => {
-    const key = String(evt.toUser);
-    if (!stats.has(key)) {
-      stats.set(key, { total: 0, accepted: 0, lastPageAt: null });
-    }
-    const entry = stats.get(key);
-    entry.total += 1;
-    if (evt.status === "accepted") entry.accepted += 1;
-    if (!entry.lastPageAt) entry.lastPageAt = evt.createdAt;
-    stats.set(key, entry);
-  });
-
-  const friendContexts = friends.map((f) => {
-    const s = stats.get(String(f._id)) || {
-      total: 0,
-      accepted: 0,
-      lastPageAt: null,
-    };
-    const acceptanceRate =
-      s.total > 0 ? Number(((s.accepted / s.total) * 100).toFixed(1)) : 0;
-    const distanceKm = computeDistanceKm(
-      currentUser.lat,
-      currentUser.lon,
-      f.lat,
-      f.lon,
-    );
-    const lastSeenMinutesAgo = f.lastSeen
-      ? Math.round((now - new Date(f.lastSeen)) / 60000)
-      : null;
-
-    return {
-      id: String(f._id),
-      uniqueId: f.uniqueId,
-      name: `${f.firstName} ${f.lastName}`.trim(),
-      email: f.email,
-      available: f.available,
-      isBusy: f.isBusy,
-      lastSeen: f.lastSeen,
-      lastSeenMinutesAgo,
-      location: f.lat && f.lon ? { lat: f.lat, lon: f.lon } : null,
-      distanceKm,
-      pageHistory: {
-        total: s.total,
-        accepted: s.accepted,
-        acceptanceRate,
-        lastPageAt: s.lastPageAt,
-      },
-    };
-  });
-
-  return {
-    generatedAt: now.toISOString(),
-    user: {
-      id: String(currentUser._id),
-      name: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
-      email: currentUser.email,
-      available: currentUser.available,
-      isBusy: currentUser.isBusy,
-      location:
-        currentUser.lat && currentUser.lon
-          ? { lat: currentUser.lat, lon: currentUser.lon }
-          : null,
-    },
-    friends: friendContexts,
-  };
-}
-
-function fallbackSuggestions(friendContexts, currentUser) {
-  const suggestions = [];
-
-  if (!currentUser.available) {
-    suggestions.push({
-      type: "go_available",
-      label: "Share your location",
-      reason: "Turn on availability so friends can see and page you.",
-    });
-  }
-
-  const pageCandidates = friendContexts
-    .filter((f) => f.available && !f.isBusy)
-    .sort((a, b) => {
-      // Highest acceptance rate first, then closest distance, then freshest last seen
-      const rateDiff =
-        (b.pageHistory.acceptanceRate || 0) -
-        (a.pageHistory.acceptanceRate || 0);
-      if (rateDiff !== 0) return rateDiff;
-      const distA = typeof a.distanceKm === "number" ? a.distanceKm : Infinity;
-      const distB = typeof b.distanceKm === "number" ? b.distanceKm : Infinity;
-      if (distA !== distB) return distA - distB;
-      const seenA =
-        typeof a.lastSeenMinutesAgo === "number"
-          ? a.lastSeenMinutesAgo
-          : Infinity;
-      const seenB =
-        typeof b.lastSeenMinutesAgo === "number"
-          ? b.lastSeenMinutesAgo
-          : Infinity;
-      return seenA - seenB;
-    })
-    .slice(0, 3);
-
-  pageCandidates.forEach((f) => {
-    suggestions.push({
-      type: "page_friend",
-      label: `Page ${f.name || f.email}`,
-      reason: [
-        f.distanceKm ? `${f.distanceKm}km away` : "Distance unknown",
-        f.pageHistory.acceptanceRate
-          ? `${f.pageHistory.acceptanceRate}% past accept rate`
-          : "No response history yet",
-      ]
-        .filter(Boolean)
-        .join(" • "),
-      data: { userId: f.id },
-    });
-  });
-
-  if (currentUser.available && !currentUser.isBusy && !pageCandidates.length) {
-    suggestions.push({
-      type: "go_busy",
-      label: "Set Busy mode",
-      reason: "No friends are available; toggle DND if you want to mute pages.",
-    });
-  }
-
-  return suggestions;
-}
+// Helpers moved to utils/suggestionEngine.js

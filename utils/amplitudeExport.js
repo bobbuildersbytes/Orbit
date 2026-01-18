@@ -41,7 +41,9 @@ async function fetchAmplitudeUserContext(userId, opts = {}) {
   if (typeof userId !== "number") {
     amplitudeId = await resolveAmplitudeId(userId);
     if (!amplitudeId) {
-      console.warn(`Could not resolve Amplitude ID for user: ${userId}`);
+      console.log(
+        `Amplitude context: User ${userId} not found (no history). Skipping personalization.`,
+      );
       return null;
     }
   }
