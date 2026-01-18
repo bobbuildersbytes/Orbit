@@ -11,6 +11,15 @@ window.suggestionsUI = (function () {
   let lastFetchTime = 0;
   const FETCH_COOLDOWN = 5000; // 5 seconds
 
+  function getSuggestionIconSvg(type) {
+    const base =
+      'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+    if (type === "activity_suggestion") {
+      return `<svg ${base}><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+    }
+    return `<svg ${base}><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6"></path><path d="M10 10V5a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-1a2 2 0 0 0-2-2h-1"></path></svg>`;
+  }
+
   function setHandlers(h) {
     handlers = { ...handlers, ...h };
   }
@@ -69,10 +78,7 @@ window.suggestionsUI = (function () {
       const el = document.createElement("div");
       el.className = "suggestion-card";
 
-      // Determine icon based on type
-      // Determine icon based on type
-      // Determine icon based on type
-      const icon = item.type === "activity_suggestion" ? "📍" : "👋";
+      const iconSvg = getSuggestionIconSvg(item.type);
       let actionLabel = item.actionLabel || "Go";
 
       // Determine users involved
@@ -106,7 +112,7 @@ window.suggestionsUI = (function () {
       el.innerHTML = `
         <div style="margin-bottom: 8px;">
           <div style="font-weight: bold; display:flex; align-items:center; gap:8px;">
-            <span>${icon}</span>
+            <span class="suggestion-icon" aria-hidden="true">${iconSvg}</span>
             <span class="suggestion-label">${item.label}</span>
           </div>
           <div class="suggestion-detail" style="font-size: 0.9em; margin-top:2px;">

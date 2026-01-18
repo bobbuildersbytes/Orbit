@@ -19,23 +19,45 @@ const { fetchNearbyPlaces } = require("./utils/places");
 const app = express();
 const port = 8008;
 
-// Initialize Email Service
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER || "your_email@gmail.com",
-    pass: process.env.EMAIL_PASS || "your_app_password",
-  },
-});
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error(
+    "Missing required env var: MONGODB_URI. Add it to your .env (see README.md).",
+  );
+  process.exit(1);
+}
 
-// Verify transporter connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("Email transporter error:", error);
-  } else {
-    console.log("Email transporter ready:", success);
-  }
-});
+const sessionSecret =
+  process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+if (!process.env.SESSION_SECRET) {
+  console.warn(
+    "SESSION_SECRET not set; using a random ephemeral secret (sessions will reset on restart).",
+  );
+}
+
+// Initialize Email Service (optional)
+let transporter = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("Email transporter error:", error);
+    } else {
+      console.log("Email transporter ready:", success);
+    }
+  });
+} else {
+  console.warn(
+    "EMAIL_USER/EMAIL_PASS not set; pager emails are disabled (set them in .env to enable).",
+  );
+}
 
 // Set view engine
 app.set("view engine", "ejs");
@@ -53,7 +75,7 @@ const upload = multer({ storage: storage });
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(mongoUri)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
@@ -67,7 +89,7 @@ app.use((req, res, next) => {
 });
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: true,
   }),
@@ -338,6 +360,19 @@ app.post("/pager", async (req, res) => {
           <p>Check your app to respond!</p>
         `,
     };
+
+    if (!transporter) {
+      if (wantsJson)
+        return res.status(503).json({
+          error:
+            "Pager emails are disabled (set EMAIL_USER/EMAIL_PASS in .env to enable).",
+        });
+      return res
+        .status(503)
+        .send(
+          "Pager emails are disabled (set EMAIL_USER/EMAIL_PASS in .env to enable).",
+        );
+    }
 
     console.log("Mail options:", mailOptions);
     const info = await transporter.sendMail(mailOptions);

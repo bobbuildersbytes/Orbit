@@ -510,7 +510,7 @@ function renderUsers(users) {
 
     // HTML content generator
     const generateInnerHTML = (user, busy, distance) => `
-      <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge">🔴 Busy</span>' : ""}${distance}</div>
+      <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge"><span class="status-dot" aria-hidden="true"></span>Busy</span>' : ""}${distance}</div>
       <div class="muted">${user.email}</div>
       ${
         user.lastSeen

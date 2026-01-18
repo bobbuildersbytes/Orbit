@@ -499,6 +499,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   transition: all var(--transition-base);
   color: var(--color-gray-500);
   position: relative;
@@ -531,10 +532,16 @@ body {
   transition: all var(--transition-base);
 }
 
-.nav-icon span {
+.nav-icon .nav-icon-svg {
   position: relative;
   z-index: 1;
   transition: transform var(--transition-base);
+}
+
+.nav-icon .nav-icon-svg {
+  width: 26px;
+  height: 26px;
+  display: block;
 }
 
 .nav-icon:hover {
@@ -549,7 +556,7 @@ body {
   transform: scale(1);
 }
 
-.nav-icon:active span {
+.nav-icon:active .nav-icon-svg {
   transform: scale(0.95);
 }
 
@@ -783,10 +790,16 @@ button.icon-btn {
   background: transparent;
   color: var(--color-gray-500);
   padding: var(--space-2);
-  font-size: 20px;
+  font-size: 24px;
   box-shadow: none;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+}
+
+button.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 button.icon-btn::before,
@@ -1156,7 +1169,16 @@ input:hover {
   }
 
   .nav-item .icon {
-    font-size: 22px;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-item .icon svg {
+    width: 24px;
+    height: 24px;
+    display: block;
   }
 
   .nav-item.active {
@@ -1329,9 +1351,32 @@ input:hover {
   color: #991b1b;
 }
 
+.busy-badge .status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #dc2626;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .distance-badge {
   background: #dbeafe;
   color: #1e40af;
+}
+
+.suggestion-icon {
+  color: var(--color-primary-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 /* Decorative Background Orbs */
@@ -3015,9 +3060,15 @@ button:disabled {
 }
 
 .pager-title::before {
-  content: "📟";
-  font-size: 24px;
-  -webkit-text-fill-color: initial;
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  background: var(--gradient-blue-purple);
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M10 16h4"/></svg>')
+    no-repeat center / contain;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M10 16h4"/></svg>')
+    no-repeat center / contain;
 }
 
 .pager-subtitle {
