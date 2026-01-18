@@ -350,66 +350,79 @@ async function updatePresence(available, busy) {
     return;
   }
   console.log("updatePresence called with:", { available, busy });
-  const res = await fetch("/api/availability", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ available, isBusy: busy }),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    alert(err.error || "Failed to update availability");
-    // Revert toggle if failed?
-    return;
-  }
-  const data = await res.json();
-  console.log("updatePresence response:", data);
-  // Success
+
+  // OPTIMISTIC UPDATE:
+  // 1. Snapshot previous state for rollback
+  const prevAvailable = isAvailable;
+  const prevBusy = isBusy;
+
+  // 2. Update local state immediately
   isAvailable = available;
   isBusy = busy;
-  console.log("State updated to:", { isAvailable, isBusy });
+
+  // 3. Update UI immediately
   syncBusyUI();
   syncAvailabilityUI(isAvailable);
 
-  // Track availability with time context
-  const now = new Date();
-  amplitudeClient.track("presence_updated", {
-    available,
-    isBusy,
-    hour: now.getHours(),
-    dayOfWeek: now.getDay(),
-    dayName: [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ][now.getDay()],
-    isWeekend: now.getDay() === 0 || now.getDay() === 6,
-    timestamp: now.toISOString(),
-  });
-
-  // Track availability percentage periodically
-  trackAvailabilityPattern();
-
-  updateAmplitudeIdentity();
-
+  // 4. Update map marker immediately
   if (lastLat && lastLon) {
-    console.log("Updating marker immediately:", {
-      lastLat,
-      lastLon,
-      isAvailable,
-      isBusy,
-    });
     mapUI.updateMyMarker(lastLat, lastLon, isAvailable, isBusy);
   }
 
+  // 5. Handle Side Effects (Location Watch) immediately based on intent
   if (available) {
+    // If turning on, ensure we have location
+    // Don't wait for sendLocation to finish
     sendLocation();
     startLocationWatch();
   } else {
     stopLocationWatch();
+  }
+
+  try {
+    const res = await fetch("/api/availability", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ available, isBusy: busy }),
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        (await res.json()).error || "Failed to update availability",
+      );
+    }
+
+    const data = await res.json();
+    console.log("updatePresence confirmed by server:", data);
+
+    // Track success
+    const now = new Date();
+    amplitudeClient.track("presence_updated", {
+      available,
+      isBusy,
+      timestamp: now.toISOString(),
+    });
+    trackAvailabilityPattern();
+    updateAmplitudeIdentity();
+  } catch (err) {
+    console.error("Presence update failed, reverting UI:", err);
+
+    // REVERT STATE
+    isAvailable = prevAvailable;
+    isBusy = prevBusy;
+
+    // REVERT UI
+    syncBusyUI();
+    syncAvailabilityUI(isAvailable);
+    if (lastLat && lastLon) {
+      mapUI.updateMyMarker(lastLat, lastLon, isAvailable, isBusy);
+    }
+
+    // REVERT LOCATION WATCH
+    if (prevAvailable) startLocationWatch();
+    else stopLocationWatch();
+
+    alert("Failed to update status. Reverting.");
   }
 }
 
@@ -459,9 +472,13 @@ async function sendLocation() {
       const { latitude, longitude, accuracy } = pos.coords;
       lastLat = latitude;
       lastLon = longitude;
-      await pushLocation(latitude, longitude, accuracy);
-      // await pushLocation(latitude, longitude, accuracy); // Duplicate call removed
+
+      // OPTIMISTIC UPDATE: Update marker locally first
       mapUI.updateMyMarker(latitude, longitude, isAvailable, isBusy);
+
+      // Then send to server
+      await pushLocation(latitude, longitude, accuracy);
+
       updateAmplitudeIdentity({ location: { lat: latitude, lon: longitude } });
     },
     (err) => alert(err.message),
