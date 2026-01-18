@@ -126,7 +126,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await User.findById(id);
+    const user = await User.findById(id).select("-profilePicture");
     done(null, user);
   } catch (err) {
     done(err, null);
@@ -464,7 +464,7 @@ app.get("/api/me", async (req, res) => {
   if (!req.isAuthenticated())
     return res.status(401).json({ error: "Not authenticated" });
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select("-password");
     // Remove presence lookup, return user fields directly
     // const presence = await Presence.findOne({ userId: req.user.id });
 

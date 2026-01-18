@@ -90,8 +90,21 @@ function filterPlaces(rawPlaces) {
     .slice(0, 30); // Top 30
 }
 
+const placeCache = new Map();
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 async function fetchNearbyPlaces(lat, lon, radius = 1000) {
   if (!lat || !lon) return [];
+
+  // 1. Check Cache
+  const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)},${radius}`;
+  if (placeCache.has(cacheKey)) {
+    const entry = placeCache.get(cacheKey);
+    if (Date.now() - entry.timestamp < CACHE_TTL) {
+      console.log("Using cached places for", cacheKey);
+      return entry.data;
+    }
+  }
 
   // Broader Query: Get nodes, ways, and relations (nwr)
   // We use "nwr" instead of just "node" to catch parks (often ways), buildings, etc.
@@ -141,6 +154,11 @@ async function fetchNearbyPlaces(lat, lon, radius = 1000) {
     // Pass to local model/filter
     const places = filterPlaces(rawElements);
     console.log(`Model retained ${places.length} places.`);
+
+    // 2. Set Cache
+    placeCache.set(cacheKey, { timestamp: Date.now(), data: places });
+    // Prune cache if too big? (Optional, maybe just let it grow for MVP)
+    if (placeCache.size > 100) placeCache.clear(); // Simple purge
 
     return places;
   } catch (err) {

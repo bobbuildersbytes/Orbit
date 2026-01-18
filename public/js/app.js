@@ -12,17 +12,25 @@ let lastIdentitySignature = null;
 const currentUser = window.orbitUser;
 
 async function bootstrap() {
-  await amplitudeClient.initFromServer();
+  // 1. Initialize Auth UI
+  // Always set user, even if null, to ensure correct Login vs App view toggle
+  // CRITICAL: Do this BEFORE any network calls (like Amplitude) to ensure instant UI
+  authUI.setUser(currentUser);
+
+  // 2. Wire Events IMMEDIATELY (Non-blocking)
+  wireEvents();
+  renderSkeletonUsers();
+
+  // 3. Initialize Amplitude (Background)
+  // Don't let this block the UI
+  amplitudeClient
+    .initFromServer()
+    .catch((err) => console.error("Amplitude init failed", err));
 
   if (currentUser) {
-    // Initialize Auth UI with injected user
-    authUI.setUser(currentUser);
     updateAmplitudeIdentity(); // Identify immediately with injected user
 
-    // Initial fetch of presence
-    await fetchMe();
-
-    wireEvents();
+    // 3. Request permissions
     requestGeolocationPermission();
 
     // Initial State: Sidebar is open, so hide the floating toggle
@@ -33,8 +41,34 @@ async function bootstrap() {
       desktopSidebarToggle.classList.add("hidden");
     }
 
+    // 4. Start Data Fetching (Async)
+    await fetchMe();
     startPolling();
+  } else {
+    // If no user, ensure we stop any polling or location watching
+    console.log("No valid current user found during bootstrap.");
   }
+}
+
+function renderSkeletonUsers() {
+  if (!usersList) return;
+  // Generate 5 skeleton items
+  let skeletons = "";
+  for (let i = 0; i < 5; i++) {
+    skeletons += `
+      <div class="user-card skeleton-card">
+        <div class="skeleton-info">
+          <div class="skeleton-text skeleton-title" style="width: 120px; margin-bottom: 4px;"></div>
+          <div class="skeleton-text" style="width: 80px;"></div>
+        </div>
+        <div class="skeleton-actions">
+           <div class="skeleton-btn"></div>
+           <div class="skeleton-btn"></div>
+        </div>
+      </div>
+    `;
+  }
+  usersList.innerHTML = skeletons;
 }
 
 async function fetchMe() {
@@ -549,6 +583,11 @@ function renderUsers(users) {
   });
 
   if (!usersList) return;
+
+  // Clear skeletons if present
+  if (usersList.querySelector(".skeleton-card")) {
+    usersList.innerHTML = "";
+  }
 
   if (!sorted.length) {
     usersList.innerHTML = '<div class="muted">No one else is available.</div>';

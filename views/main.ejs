@@ -145,7 +145,37 @@
               </div>
               <div id="users-section">
                 <div class="section-title">Friends</div>
-                <div id="users-list"></div>
+                <div id="users-list">
+                  <!-- Static Skeletons for Instant Load -->
+                  <% for(let i=0; i<5; i++) { %>
+                  <div class="user-card skeleton-card">
+                    <div class="skeleton-info">
+                      <div class="skeleton-text skeleton-title" style="width: 120px; margin-bottom: 4px;"></div>
+                      <div class="skeleton-text" style="width: 80px;"></div>
+                    </div>
+                    <div class="skeleton-actions">
+                       <div class="skeleton-btn"></div>
+                       <div class="skeleton-btn"></div>
+                    </div>
+                  </div>
+                  <% } %>
+                </div>
+                <script>
+                  // Inline Critical View Toggle
+                  // Runs immediately after this HTML is parsed
+                  (function() {
+                    try {
+                      var login = document.getElementById('login-view');
+                      var app = document.getElementById('app-view');
+                      if (window.orbitUser) {
+                        if (login) login.classList.add('hidden');
+                        if (app) app.classList.remove('hidden');
+                      } else {
+                        // Logic handled by auth.js fallback/redirect usually
+                      }
+                    } catch(e) {}
+                  })();
+                </script>
               </div>
               <div class="spacer"></div>
               <!-- Orbit "Add Friend" Integration -->

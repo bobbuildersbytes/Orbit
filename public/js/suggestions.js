@@ -38,8 +38,24 @@ window.suggestionsUI = (function () {
     lastFetchTime = now;
 
     // Show loading state if forcing (e.g. initial open or manual refresh)
+    // Show loading state if forcing (e.g. initial open or manual refresh)
     if (force && list) {
-      list.innerHTML = '<div class="muted">Loading suggestions...</div>';
+      // Render Skeletons
+      let skeletons = "";
+      for (let i = 0; i < 3; i++) {
+        skeletons += `
+            <div class="suggestion-card skeleton-card">
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <div class="skeleton-avatar" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                    <div class="skeleton-info" style="flex: 1;">
+                        <div class="skeleton-text skeleton-title" style="width: 60%;"></div>
+                        <div class="skeleton-text" style="width: 90%; height: 10px;"></div>
+                        <div class="skeleton-text" style="width: 40%; height: 10px; margin-top: 4px;"></div>
+                    </div>
+                </div>
+            </div>`;
+      }
+      list.innerHTML = skeletons;
     }
 
     try {

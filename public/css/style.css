@@ -3366,3 +3366,89 @@ button:disabled {
 .toast-icon {
   font-size: var(--font-size-lg);
 }
+
+/* ============================================
+     SKELETON UI ANIMATIONS
+     ============================================ */
+.skeleton-card {
+  display: flex !important;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-200);
+  margin-bottom: 8px;
+}
+
+.skeleton-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-text,
+.skeleton-avatar,
+.skeleton-btn {
+  background: var(--color-gray-300);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  /* Ensure shimmer is visible on top of background */
+  z-index: 1;
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 100%;
+}
+
+.skeleton-avatar {
+  background: var(--color-gray-300);
+  flex-shrink: 0;
+}
+
+/* Enhanced Shimmer */
+.skeleton-text::after,
+.skeleton-avatar::after,
+.skeleton-btn::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.7) 60%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.2s infinite;
+  z-index: 2;
+}
+
+.skeleton-title {
+  height: 16px;
+  background: var(--color-gray-400);
+  margin-bottom: 6px;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-btn {
+  width: 60px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
