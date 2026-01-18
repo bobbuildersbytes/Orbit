@@ -75,6 +75,8 @@ function wireEvents() {
   );
   const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
   const bottomNavItems = document.querySelectorAll(".nav-item");
+  const mobileNavIcons = document.querySelectorAll(".mobile-nav-icon");
+  const mobileDrawerBackdrop = document.getElementById("mobile-drawer-backdrop");
 
   function toggleSidebar(show) {
     if (show) {
@@ -85,6 +87,18 @@ function wireEvents() {
       desktopSidebarToggle.classList.remove("hidden");
     }
     // Map invalidation is now handled by ResizeObserver in bootstrap()
+  }
+
+  function setMobileDrawerOpen(open) {
+    if (!sidebar) return;
+    if (open) {
+      sidebar.classList.add("mobile-open");
+      mobileDrawerBackdrop?.classList.remove("hidden");
+    } else {
+      sidebar.classList.remove("mobile-open");
+      mobileDrawerBackdrop?.classList.add("hidden");
+      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
+    }
   }
 
   // Sidebar Open (Desktop)
@@ -163,6 +177,42 @@ function wireEvents() {
     });
   });
 
+  // Mobile Side Navigation (Drawer)
+  mobileDrawerBackdrop?.addEventListener("click", () => {
+    setMobileDrawerOpen(false);
+  });
+
+  mobileNavIcons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target;
+      if (!target) return;
+
+      const isSameTarget =
+        btn.classList.contains("active") &&
+        sidebar &&
+        sidebar.classList.contains("mobile-open");
+
+      // Always update active state (so it shows the "current" section)
+      mobileNavIcons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      if (isSameTarget) {
+        setMobileDrawerOpen(false);
+        return;
+      }
+
+      setMobileDrawerOpen(true);
+
+      // Add specific class for potential CSS styling hooks
+      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
+      if (target === "activities-panel") sidebar.classList.add("show-activities");
+      else if (target === "profile-panel") sidebar.classList.add("show-profile");
+      else if (target === "suggestions-panel") sidebar.classList.add("show-suggestions");
+
+      switchPanel(target);
+    });
+  });
+
   // Mobile Navigation
   bottomNavItems.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -173,13 +223,8 @@ function wireEvents() {
 
       // If clicking already active tab -> Close (Toggle off)
       if (isActive) {
-        sidebar.classList.remove("mobile-open");
+        setMobileDrawerOpen(false);
         // Clear specific classes
-        sidebar.classList.remove(
-          "show-activities",
-          "show-profile",
-          "show-suggestions",
-        );
         return;
       }
 
@@ -187,14 +232,10 @@ function wireEvents() {
       btn.classList.add("active");
       const target = btn.dataset.target;
 
-      sidebar.classList.add("mobile-open");
+      setMobileDrawerOpen(true);
 
       // Reset specific classes
-      sidebar.classList.remove(
-        "show-activities",
-        "show-profile",
-        "show-suggestions",
-      );
+      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
 
       // Add specific class for potential CSS styling hooks
       if (target === "activities-panel")
