@@ -8,6 +8,7 @@ window.suggestionsUI = (function () {
     onAvailability: () => {},
   };
 
+  let isFetching = false;
   let lastFetchTime = 0;
   const FETCH_COOLDOWN = 5000; // 5 seconds
 
@@ -25,12 +26,15 @@ window.suggestionsUI = (function () {
   }
 
   async function fetchSuggestions(force = false) {
+    if (isFetching) return;
+
     const now = Date.now();
     if (!force && now - lastFetchTime < FETCH_COOLDOWN) {
       console.log("Skipping suggestion fetch (cooldown)");
       return;
     }
 
+    isFetching = true;
     lastFetchTime = now;
 
     // Show loading state if forcing (e.g. initial open or manual refresh)
@@ -40,7 +44,7 @@ window.suggestionsUI = (function () {
 
     try {
       const res = await fetch("/api/suggestions/context");
-      if (!res.ok) return;
+      if (!res.ok) throw new Error("Fetch failed");
       const data = await res.json();
       context = data.context || null;
       render(data.suggestions || []);
@@ -49,6 +53,8 @@ window.suggestionsUI = (function () {
       if (list)
         list.innerHTML =
           '<div class="muted" style="color:var(--color-error)">Failed to load.</div>';
+    } finally {
+      isFetching = false;
     }
   }
 
@@ -514,6 +520,17 @@ window.suggestionsUI = (function () {
         const inviteMessage = buildInviteMessage(item);
         console.log("DEBUG: Paging friends", userIds);
 
+        // Update UI to show sending state
+        if (cardElement) {
+          const btn = cardElement.querySelector(".action-btn");
+          if (btn) {
+            btn.textContent = "Sending...";
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+          }
+        }
+
         await Promise.all(
           userIds.map((uid) => {
             const friend = lookupFriendById(uid);
@@ -528,6 +545,23 @@ window.suggestionsUI = (function () {
         if (window.trackSuggestionDecision) {
           window.trackSuggestionDecision(item, "Accept", userIds);
         }
+
+        // Plot venue after success
+        if (
+          item.data &&
+          item.data.location &&
+          item.data.location.lat &&
+          item.data.location.lon
+        ) {
+          if (window.mapUI && window.mapUI.addTemporaryMarker) {
+            window.mapUI.addTemporaryMarker(
+              item.data.location.lat,
+              item.data.location.lon,
+              item.label,
+            );
+          }
+        }
+
         if (cardElement) cardElement.remove();
         return;
       }
@@ -548,6 +582,23 @@ window.suggestionsUI = (function () {
             topCandidate.id || topCandidate._id,
           ]);
         }
+
+        // Plot venue after success
+        if (
+          item.data &&
+          item.data.location &&
+          item.data.location.lat &&
+          item.data.location.lon
+        ) {
+          if (window.mapUI && window.mapUI.addTemporaryMarker) {
+            window.mapUI.addTemporaryMarker(
+              item.data.location.lat,
+              item.data.location.lon,
+              item.label,
+            );
+          }
+        }
+
         if (cardElement) cardElement.remove();
       } else {
         alert("No available friends found to invite.");
@@ -689,21 +740,49 @@ window.suggestionsUI = (function () {
     });
     updateSendEnabled();
 
-    sendBtn?.addEventListener("click", () => {
+    sendBtn?.addEventListener("click", async () => {
       if (!selectedIds.size) return;
+
+      // UI Sending State
+      if (sendBtn) {
+        sendBtn.textContent = "Sending...";
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = "0.7";
+        sendBtn.style.cursor = "not-allowed";
+      }
+
       const inviteMessage = buildInviteMessage(item);
 
       // We can't easily await here since it's an event handler, but modal closing is fine.
       // But let's try to track ensuring requests fire.
 
-      selectedIds.forEach((id) => {
-        const friend = candidates.find((c) => c.id === id);
-        if (friend) handlers.onPage(friend.id, inviteMessage);
-      });
+      await Promise.all(
+        Array.from(selectedIds).map((id) => {
+          const friend = candidates.find((c) => c.id === id);
+          if (friend) return handlers.onPage(friend.id, inviteMessage);
+          return Promise.resolve();
+        }),
+      );
       suggestionConfidence = Math.max(0.2, suggestionConfidence - 0.05);
 
       if (window.trackSuggestionDecision) {
         window.trackSuggestionDecision(item, "Accept", Array.from(selectedIds));
+      }
+
+      // Plot venue after success
+      if (
+        item.data &&
+        item.data.location &&
+        item.data.location.lat &&
+        item.data.location.lon
+      ) {
+        if (window.mapUI && window.mapUI.addTemporaryMarker) {
+          window.mapUI.addTemporaryMarker(
+            item.data.location.lat,
+            item.data.location.lon,
+            item.label,
+          );
+        }
       }
 
       closeModal();

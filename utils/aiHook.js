@@ -67,21 +67,27 @@ async function getOrCreateAssistant(type) {
       
       RULES:
       1. detailed: Look at the "places" list. Pick valid, named places.
-      2. social: IF friends are nearby, ALWAYS prioritize meeting ONE specific friend per suggestion.
+      2. social: IF friends are nearby, prioritize meeting ONE specific friend per suggestion.
          - Prioritize friends with LOWER "distanceKm".
          - Mention the distance in the reasoning.
-      3. specific: Do not suggest "friends" as a group. Suggest "Meet Alice" or "Meet Bob".
+         - IF NO FRIENDS are available or suitable, suggest a solo activity for the user.
+      3. specific: 
+         - If suggesting a friend, do not suggest "friends" as a group. Suggest "Meet Alice".
          - You MUST identify the friend by their unique "id" or "_id" from the JSON context.
+         - If suggesting solo, do not mention a friend.
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       
       USER HISTORY (Recent Decisions):
       The input JSON context will contain a "history" array of recent suggestions and my decisions (Accept/Reject).
-      Analyze this history to guide your choice (e.g. if I rejected Sushi, don't suggest Sushi today. If I accept Coffee often, suggest Coffee).
+      If the history array is present and not empty, analyze it to guide your choice (e.g. if I rejected Sushi, don't suggest Sushi today).
+      If history is empty, rely on general high-quality suggestions.
 
       OUTPUT:
       Write a natural language summary of the location.
-      CRITICAL: For every suggestion, you MUST explicitly mention the Friend's ID in parentheses like this: (FriendID: 123abc456).
-    `;
+      CRITICAL RULES for OUTPUT:
+      1. For every suggestion with a friend, you MUST explicitly mention the Friend's ID: (FriendID: 123abc456).
+      2. You MUST explicitly mention the exact latitude and longitude of the place from the context tokens: (Location: 43.6532, -79.3832).
+     `;
   } else {
     name = "Orbit JSON Formatter";
     prompt = `
@@ -92,16 +98,19 @@ async function getOrCreateAssistant(type) {
       Return a JSON object with a "suggestions" array.
       
       CRITICAL FORMATTING RULES:
-      1. Label (Title): MUST be in the format "[Activity] at [Place] with [Person]".
-         Example: "Coffee at Starbucks with Alice" or "Dinner at The Fox with Bob".
+      1. Label (Title): 
+         - If with a friend: "[Activity] at [Place] with [Person]".
+         - If solo: "[Activity] at [Place]".
       2. Detail (Description): MUST be a description of the location/venue itself. do not mention the person here.
       3. Reason (Reasoning): The strategic reasoning for this suggestion.
-      4. Action Label (Button): MUST be "Invite [First Name of Person]".
-         Example: "Invite Alice".
+      4. Action Label (Button): 
+         - If with a friend: "Invite [First Name]".
+         - If solo: "Go".
       5. Data: 
          - "type": "activity_suggestion"
-         - "userId": EXTRACT the exact alphanumeric string from the input (e.g. "FriendID: ..."). This MUST be the database ID (e.g. "65a1b2c3d4e5f6..."), NOT a name like "Alice". If no ID is found, use null.
+         - "userId": EXTRACT the exact alphanumeric string from the input (e.g. "FriendID: ..."). This MUST be the database ID. If no ID is found (solo activity), use null.
          - "venue": The name of the place.
+         - "location": EXTRACT the coordinates from the text e.g. "(Location: lat, lon)". Return object {{ "lat": number, "lon": number }}.
 
       Example structure:
       "suggestions": [
@@ -120,10 +129,14 @@ async function getOrCreateAssistant(type) {
   }
 
   // Create new assistant
-  console.log(`Creating Backboard assistant: ${name} (Default Model)...`);
+  const model =
+    type === "processor" ? "anthropic/claude-3.5-sonnet" : "openai/gpt-4o";
+  console.log(`Creating Backboard assistant: ${name} (Model: ${model})...`);
+
   const data = await backboardRequest("/assistants", "POST", {
     name: name,
     system_prompt: prompt,
+    model: model,
   });
 
   assistantCache[type] = data.assistant_id;

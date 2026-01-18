@@ -76,7 +76,9 @@ function wireEvents() {
   const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
   const bottomNavItems = document.querySelectorAll(".nav-item");
   const mobileNavIcons = document.querySelectorAll(".mobile-nav-icon");
-  const mobileDrawerBackdrop = document.getElementById("mobile-drawer-backdrop");
+  const mobileDrawerBackdrop = document.getElementById(
+    "mobile-drawer-backdrop",
+  );
 
   function toggleSidebar(show) {
     if (show) {
@@ -97,7 +99,11 @@ function wireEvents() {
     } else {
       sidebar.classList.remove("mobile-open");
       mobileDrawerBackdrop?.classList.add("hidden");
-      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
+      sidebar.classList.remove(
+        "show-activities",
+        "show-profile",
+        "show-suggestions",
+      );
     }
   }
 
@@ -130,8 +136,7 @@ function wireEvents() {
 
     // Update Title based on target
     if (sidebarTitle) {
-      if (targetId === "activities-panel")
-        sidebarTitle.textContent = "Activities";
+      if (targetId === "activities-panel") sidebarTitle.textContent = "Friends";
       else if (targetId === "profile-panel")
         sidebarTitle.textContent = "Profile & Settings";
       else if (targetId === "suggestions-panel") {
@@ -204,10 +209,17 @@ function wireEvents() {
       setMobileDrawerOpen(true);
 
       // Add specific class for potential CSS styling hooks
-      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
-      if (target === "activities-panel") sidebar.classList.add("show-activities");
-      else if (target === "profile-panel") sidebar.classList.add("show-profile");
-      else if (target === "suggestions-panel") sidebar.classList.add("show-suggestions");
+      sidebar.classList.remove(
+        "show-activities",
+        "show-profile",
+        "show-suggestions",
+      );
+      if (target === "activities-panel")
+        sidebar.classList.add("show-activities");
+      else if (target === "profile-panel")
+        sidebar.classList.add("show-profile");
+      else if (target === "suggestions-panel")
+        sidebar.classList.add("show-suggestions");
 
       switchPanel(target);
     });
@@ -221,10 +233,13 @@ function wireEvents() {
       // Always reset active state first
       bottomNavItems.forEach((b) => b.classList.remove("active"));
 
-      // If clicking already active tab -> Close (Toggle off)
+      // If clicking already active tab -> Toggle Drawer
       if (isActive) {
-        setMobileDrawerOpen(false);
-        // Clear specific classes
+        if (sidebar && sidebar.classList.contains("mobile-open")) {
+          setMobileDrawerOpen(false);
+        } else {
+          setMobileDrawerOpen(true);
+        }
         return;
       }
 
@@ -235,7 +250,11 @@ function wireEvents() {
       setMobileDrawerOpen(true);
 
       // Reset specific classes
-      sidebar.classList.remove("show-activities", "show-profile", "show-suggestions");
+      sidebar.classList.remove(
+        "show-activities",
+        "show-profile",
+        "show-suggestions",
+      );
 
       // Add specific class for potential CSS styling hooks
       if (target === "activities-panel")

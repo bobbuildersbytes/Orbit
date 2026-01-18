@@ -58,6 +58,7 @@ window.mapUI = (function () {
     });
     Array.from(markers.keys()).forEach((id) => {
       if (id === "me") return; // Don't remove local marker
+      if (id === "temp") return; // Don't remove temporary venue marker
       if (!seen.has(id)) {
         const marker = markers.get(id);
         map.removeLayer(marker);
@@ -107,5 +108,46 @@ window.mapUI = (function () {
     }
   }
 
-  return { updateMarkers, centerOn, updateMyMarker, map };
+  function addTemporaryMarker(lat, lon, popupText) {
+    if (!map) return;
+
+    // Remove existing temporary marker if any
+    if (markers.has("temp")) {
+      map.removeLayer(markers.get("temp"));
+      markers.delete("temp");
+    }
+
+    const pinSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ef4444" stroke="#7f1d1d" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-map-pin" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+      </svg>
+    `;
+
+    const icon = L.divIcon({
+      html: pinSvg,
+      className: "custom-pin-marker",
+      iconSize: [32, 32],
+      iconAnchor: [16, 32], // Bottom tip
+      popupAnchor: [0, -34],
+    });
+
+    const marker = L.marker([lat, lon], { icon }).addTo(map);
+
+    if (popupText) {
+      marker.bindPopup(`<strong>${popupText}</strong>`).openPopup();
+      // Remove marker when popup is closed
+      marker.on("popupclose", function () {
+        if (markers.get("temp") === marker) {
+          map.removeLayer(marker);
+          markers.delete("temp");
+        }
+      });
+    }
+
+    markers.set("temp", marker);
+    map.setView([lat, lon], 15);
+  }
+
+  return { updateMarkers, centerOn, updateMyMarker, addTemporaryMarker, map };
 })();

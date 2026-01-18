@@ -44,8 +44,29 @@
         <div class="sidebar-nav">
           <button
             class="nav-icon active"
+            data-target="profile-panel"
+            title="Profile"
+          >
+            <svg
+              class="nav-icon-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+          <button
+            class="nav-icon"
             data-target="activities-panel"
-            title="Activities"
+            title="Friends"
           >
             <svg
               class="nav-icon-svg"
@@ -63,23 +84,6 @@
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </button>
-          <button class="nav-icon" data-target="profile-panel" title="Profile">
-            <svg
-              class="nav-icon-svg"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
             </svg>
           </button>
           <button
@@ -110,7 +114,7 @@
 
         <div class="sidebar-content-wrapper">
           <div class="sidebar-header">
-            <h2 id="sidebar-title">Activities</h2>
+            <h2 id="sidebar-title">Profile & Settings</h2>
             <button
               id="sidebar-close-btn"
               class="icon-btn"
@@ -134,10 +138,10 @@
           </div>
 
           <div class="sidebar-content">
-            <!-- Activities (Default Visible) -->
-            <div class="panel-section" id="activities-panel">
+            <!-- Activities (Default Hidden) -->
+            <div class="panel-section hidden" id="activities-panel">
               <div class="panel-header mobile-only">
-                <h3>Activities</h3>
+                <h3>Friends</h3>
               </div>
               <div id="users-section">
                 <div class="section-title">Friends</div>
@@ -239,8 +243,8 @@
               </div>
             </div>
 
-            <!-- Profile (Hidden by default on desktop) -->
-            <div class="panel-section hidden" id="profile-panel">
+            <!-- Profile (Default Visible) -->
+            <div class="panel-section" id="profile-panel">
               <div
                 class="panel-header mobile-only"
                 style="
@@ -444,9 +448,9 @@
         <!-- Mobile Side Navigation -->
         <div id="mobile-side-nav" class="mobile-only" aria-label="Navigation">
           <button
-            class="mobile-nav-icon active"
+            class="mobile-nav-icon"
             data-target="activities-panel"
-            aria-label="Activities"
+            aria-label="Friends"
           >
             <svg
               class="nav-icon-svg"
@@ -467,7 +471,7 @@
             </svg>
           </button>
           <button
-            class="mobile-nav-icon"
+            class="mobile-nav-icon active"
             data-target="profile-panel"
             aria-label="Profile"
           >
@@ -521,7 +525,26 @@
 
         <!-- Mobile Bottom Nav -->
         <nav id="bottom-nav" class="mobile-only">
-          <button class="nav-item active" data-target="activities-panel">
+          <button class="nav-item active" data-target="profile-panel">
+            <span class="icon" aria-hidden="true">
+              <svg
+                class="nav-item-svg"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                focusable="false"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </span>
+            <span>Profile</span>
+          </button>
+          <button class="nav-item" data-target="activities-panel">
             <span class="icon" aria-hidden="true">
               <svg
                 class="nav-item-svg"
@@ -540,26 +563,7 @@
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <span>Activities</span>
-          </button>
-          <button class="nav-item" data-target="profile-panel">
-            <span class="icon" aria-hidden="true">
-              <svg
-                class="nav-item-svg"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                focusable="false"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </span>
-            <span>Profile</span>
+            <span>Friends</span>
           </button>
           <button class="nav-item" data-target="suggestions-panel">
             <span class="icon" aria-hidden="true">

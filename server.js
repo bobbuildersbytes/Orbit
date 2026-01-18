@@ -598,6 +598,11 @@ app.post("/api/page-events/:id/accept", async (req, res) => {
   }
 });
 
+// Basic in-memory cache
+const placesCache = new Map(); // Key: "lat,lon" (rounded), Value: { data, timestamp }
+const amplitudeCache = new Map(); // Key: userId, Value: { data, timestamp }
+const CACHE_TTL = 60 * 1000; // 1 minute
+
 app.get("/api/suggestions/context", async (req, res) => {
   if (!req.isAuthenticated())
     return res.status(401).json({ error: "Login required" });
@@ -609,7 +614,17 @@ app.get("/api/suggestions/context", async (req, res) => {
     // Fetch nearby places
     let places = [];
     if (currentUser.lat && currentUser.lon) {
-      places = await fetchNearbyPlaces(currentUser.lat, currentUser.lon);
+      // Round to 3 decimals (~100m) for caching key
+      const cacheKey = `${currentUser.lat.toFixed(3)},${currentUser.lon.toFixed(3)}`;
+      const cached = placesCache.get(cacheKey);
+
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL * 5) {
+        // 5 min cache for places
+        places = cached.data;
+      } else {
+        places = await fetchNearbyPlaces(currentUser.lat, currentUser.lon);
+        placesCache.set(cacheKey, { data: places, timestamp: Date.now() });
+      }
     }
     aiContext.places = places; // Add to context
 
@@ -622,10 +637,26 @@ app.get("/api/suggestions/context", async (req, res) => {
       // Fetch User History from Amplitude
       let history = [];
       const { fetchAmplitudeUserContext } = require("./utils/amplitudeExport");
-      const ampContext = await fetchAmplitudeUserContext(
-        currentUser._id.toString(),
-        { limit: 1000 }, // Fetch more to filter down (types param didn't work)
-      );
+
+      let ampContext = null;
+      const ampCacheKey = currentUser._id.toString();
+      const cachedAmp = amplitudeCache.get(ampCacheKey);
+
+      if (cachedAmp && Date.now() - cachedAmp.timestamp < CACHE_TTL) {
+        ampContext = cachedAmp.data;
+        console.log("Using cached Amplitude context");
+      } else {
+        ampContext = await fetchAmplitudeUserContext(
+          currentUser._id.toString(),
+          { limit: 1000 }, // Fetch more to filter down (types param didn't work)
+        );
+        if (ampContext) {
+          amplitudeCache.set(ampCacheKey, {
+            data: ampContext,
+            timestamp: Date.now(),
+          });
+        }
+      }
 
       if (ampContext && ampContext.events) {
         console.log(`DEBUG: Resolved Amplitude ID: ${ampContext.amplitudeId}`);
