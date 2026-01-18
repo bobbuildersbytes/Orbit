@@ -13,6 +13,7 @@
       href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css"
     />
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/edit-modal.css" />
   </head>
   <body>
     <!-- Inject User Data for Client-Side JS -->
@@ -353,12 +354,103 @@
         </nav>
       </main>
 
-      <!-- Mobile Sheet Overlay (Container for mobile panel views) -->
       <div id="mobile-sheet-overlay" class="hidden">
         <div class="sheet-content" id="sheet-container">
           <!-- Content will be swapped or shown here via JS logic/CSS -->
         </div>
         <button id="close-sheet-btn">×</button>
+      </div>
+
+      <!-- Paging Modal (Custom UI Replacement for Prompt) -->
+      <div id="pager-modal-overlay" class="pager-modal-overlay hidden">
+        <div class="pager-modal">
+          <h3 class="pager-title">Page Friend</h3>
+          <p class="pager-subtitle">
+            Send a quick message to let them know you're looking for them.
+          </p>
+          <textarea
+            id="pager-message-input"
+            class="pager-textarea"
+            placeholder="Type your message here... (optional)"
+            rows="3"
+          ></textarea>
+          <div class="pager-actions">
+            <button id="pager-cancel-btn" class="secondary">Cancel</button>
+            <button id="pager-send-btn">Send Page</button>
+          </div>
+        </div>
+      </div>
+      <!-- Edit Suggestion Modal -->
+      <div
+        id="edit-suggestion-modal-overlay"
+        class="pager-modal-overlay hidden"
+      >
+        <div class="pager-modal" id="edit-modal-content">
+          <div class="invite-header">
+            <div style="flex: 1">
+              <div class="invite-title" id="edit-modal-title">
+                Edit Suggestion
+              </div>
+              <div class="invite-detail" id="edit-modal-subtitle">
+                Update details or choose a different friend.
+              </div>
+            </div>
+          </div>
+          <div
+            class="invite-confidence"
+            id="edit-modal-confidence"
+            style="display: none; margin-bottom: 12px"
+          ></div>
+
+          <label
+            id="edit-step1-label"
+            style="
+              display: block;
+              margin-bottom: 8px;
+              font-weight: 600;
+              color: var(--color-gray-700);
+            "
+            >Select Friend:</label
+          >
+          <div
+            id="edit-friend-list"
+            class="friend-multiselect invite-list"
+            style="
+              max-height: 300px;
+              overflow-y: auto;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              border: 1px solid rgba(0, 0, 0, 0.05);
+              padding: 0;
+              border-radius: 8px;
+              background: transparent;
+            "
+          >
+            <!-- Checkboxes injected by JS -->
+          </div>
+
+          <label
+            id="edit-step2-label"
+            style="
+              display: block;
+              margin-bottom: 8px;
+              font-weight: 600;
+              color: var(--color-gray-700);
+            "
+            >Details (e.g. time/place):</label
+          >
+          <textarea
+            id="edit-suggestion-detail"
+            class="pager-textarea"
+            rows="3"
+          ></textarea>
+
+          <div class="pager-actions">
+            <button id="edit-cancel-btn" class="secondary">Cancel</button>
+            <button id="edit-save-btn">Save Changes</button>
+          </div>
+        </div>
       </div>
     </div>
 

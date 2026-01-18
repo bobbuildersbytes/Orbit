@@ -34,7 +34,6 @@ async function bootstrap() {
     }
 
     startPolling();
-    suggestionsUI.fetchSuggestions();
   }
 }
 
@@ -313,16 +312,24 @@ async function updatePresence(available, busy) {
 
   // Track availability with time context
   const now = new Date();
-  amplitudeClient.track("presence_updated", { 
-    available, 
+  amplitudeClient.track("presence_updated", {
+    available,
     isBusy,
     hour: now.getHours(),
     dayOfWeek: now.getDay(),
-    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
+    dayName: [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][now.getDay()],
     isWeekend: now.getDay() === 0 || now.getDay() === 6,
-    timestamp: now.toISOString()
+    timestamp: now.toISOString(),
   });
-  
+
   // Track availability percentage periodically
   trackAvailabilityPattern();
 
@@ -487,7 +494,7 @@ function renderUsers(users) {
     const isBusy = !!u.isBusy;
 
     // Calculate distance
-    let distanceText = '';
+    let distanceText = "";
     if (lastLat && lastLon && u.lat && u.lon) {
       const distKm = getDistanceFromLatLonInKm(lastLat, lastLon, u.lat, u.lon);
       if (distKm < 1) {
@@ -591,11 +598,71 @@ async function removeFriend(friendId, friendName) {
   }
 }
 
+async function openPagingModal(toUserId) {
+  const overlay = document.getElementById("pager-modal-overlay");
+  const input = document.getElementById("pager-message-input");
+  const cancelBtn = document.getElementById("pager-cancel-btn");
+  const sendBtn = document.getElementById("pager-send-btn");
+
+  if (!overlay || !input || !cancelBtn || !sendBtn) {
+    console.error("Missing pager modal elements");
+    return prompt("Optional message?");
+  }
+
+  // Reset UI
+  input.value = "";
+  overlay.classList.remove("hidden");
+  setTimeout(() => input.focus(), 50); // Small delay to ensure visibility
+
+  return new Promise((resolve) => {
+    const close = () => {
+      overlay.classList.add("hidden");
+      cleanup();
+    };
+
+    const onSend = () => {
+      const msg = input.value;
+      close();
+      resolve(msg || undefined);
+    };
+
+    const onCancel = () => {
+      close();
+      resolve(null);
+    };
+
+    const onKey = (e) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        onSend();
+      }
+    };
+
+    const cleanup = () => {
+      sendBtn.removeEventListener("click", onSend);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onBackdropClick);
+      input.removeEventListener("keydown", onKey);
+    };
+
+    const onBackdropClick = (e) => {
+      if (e.target === overlay) onCancel();
+    };
+
+    sendBtn.addEventListener("click", onSend);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onBackdropClick);
+    input.addEventListener("keydown", onKey);
+  });
+}
+
 async function pageUser(toUserId, presetMessage) {
-  const message =
-    typeof presetMessage === "string"
-      ? presetMessage
-      : prompt("Optional message?") || undefined;
+  let message = presetMessage;
+  if (typeof message !== "string") {
+    message = await openPagingModal(toUserId);
+    if (message === null) return; // Cancelled
+  }
   // This originally went to /api/page, we can keep it
   const res = await fetch("/pager", {
     // Reusing Orbit's existing endpoint or creating new
@@ -611,14 +678,22 @@ async function pageUser(toUserId, presetMessage) {
   // Orbit's /pager redirects, so fetch might follow it.
   // Ideally we change /pager to return JSON.
   alert("Page sent!");
-  
+
   // Track with time context
   const now = new Date();
-  amplitudeClient.track("page_clicked", { 
+  amplitudeClient.track("page_clicked", {
     toUserId,
     hour: now.getHours(),
     dayOfWeek: now.getDay(), // 0 = Sunday, 6 = Saturday
-    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
+    dayName: [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][now.getDay()],
     timestamp: now.toISOString(),
     userLat: lastLat,
     userLon: lastLon,
@@ -674,10 +749,7 @@ function deg2rad(deg) {
 function formatLastSeen(lastSeen) {
   const ts = new Date(lastSeen);
   if (Number.isNaN(ts.getTime())) return "Last seen: unknown";
-  const minutes = Math.max(
-    0,
-    Math.round((Date.now() - ts.getTime()) / 60000),
-  );
+  const minutes = Math.max(0, Math.round((Date.now() - ts.getTime()) / 60000));
   if (minutes < 1) return "Last seen: just now";
   if (minutes < 60) return `Last seen: ${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -721,71 +793,91 @@ function trackAvailabilityPattern() {
     hour: now.getHours(),
     dayOfWeek: now.getDay(),
     available: isAvailable,
-    busy: isBusy
+    busy: isBusy,
   };
-  
+
   availabilityLog.push(entry);
-  
+
   // Keep only recent entries
   if (availabilityLog.length > MAX_LOG_ENTRIES) {
     availabilityLog = availabilityLog.slice(-MAX_LOG_ENTRIES);
   }
-  
+
   // Save to localStorage
   try {
-    localStorage.setItem('availability_log', JSON.stringify(availabilityLog));
+    localStorage.setItem("availability_log", JSON.stringify(availabilityLog));
   } catch (e) {
-    console.error('Failed to save availability log', e);
+    console.error("Failed to save availability log", e);
   }
 }
 
 // Send availability analytics periodically (every hour)
 function sendAvailabilityAnalytics() {
   if (availabilityLog.length === 0) return;
-  
+
   const now = new Date();
   const currentHour = now.getHours();
   const currentDay = now.getDay();
-  
+
   // Calculate availability percentage for current hour across all days
-  const sameHourEntries = availabilityLog.filter(e => e.hour === currentHour);
-  const availableCount = sameHourEntries.filter(e => e.available && !e.busy).length;
-  const hourlyAvailabilityPct = sameHourEntries.length > 0 
-    ? Math.round((availableCount / sameHourEntries.length) * 100) 
-    : 0;
-  
+  const sameHourEntries = availabilityLog.filter((e) => e.hour === currentHour);
+  const availableCount = sameHourEntries.filter(
+    (e) => e.available && !e.busy,
+  ).length;
+  const hourlyAvailabilityPct =
+    sameHourEntries.length > 0
+      ? Math.round((availableCount / sameHourEntries.length) * 100)
+      : 0;
+
   // Calculate availability percentage for current day of week
-  const sameDayEntries = availabilityLog.filter(e => e.dayOfWeek === currentDay);
-  const dayAvailableCount = sameDayEntries.filter(e => e.available && !e.busy).length;
-  const dailyAvailabilityPct = sameDayEntries.length > 0
-    ? Math.round((dayAvailableCount / sameDayEntries.length) * 100)
-    : 0;
-  
+  const sameDayEntries = availabilityLog.filter(
+    (e) => e.dayOfWeek === currentDay,
+  );
+  const dayAvailableCount = sameDayEntries.filter(
+    (e) => e.available && !e.busy,
+  ).length;
+  const dailyAvailabilityPct =
+    sameDayEntries.length > 0
+      ? Math.round((dayAvailableCount / sameDayEntries.length) * 100)
+      : 0;
+
   // Overall availability percentage
-  const totalAvailable = availabilityLog.filter(e => e.available && !e.busy).length;
-  const overallPct = Math.round((totalAvailable / availabilityLog.length) * 100);
-  
-  amplitudeClient.track('availability_pattern', {
+  const totalAvailable = availabilityLog.filter(
+    (e) => e.available && !e.busy,
+  ).length;
+  const overallPct = Math.round(
+    (totalAvailable / availabilityLog.length) * 100,
+  );
+
+  amplitudeClient.track("availability_pattern", {
     hour: currentHour,
     dayOfWeek: currentDay,
-    dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentDay],
+    dayName: [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][currentDay],
     hourlyAvailabilityPercentage: hourlyAvailabilityPct,
     dailyAvailabilityPercentage: dailyAvailabilityPct,
     overallAvailabilityPercentage: overallPct,
     dataPoints: availabilityLog.length,
     currentlyAvailable: isAvailable,
-    currentlyBusy: isBusy
+    currentlyBusy: isBusy,
   });
 }
 
 // Load availability log from localStorage on startup
 try {
-  const saved = localStorage.getItem('availability_log');
+  const saved = localStorage.getItem("availability_log");
   if (saved) {
     availabilityLog = JSON.parse(saved);
   }
 } catch (e) {
-  console.error('Failed to load availability log', e);
+  console.error("Failed to load availability log", e);
 }
 
 // Send analytics every hour

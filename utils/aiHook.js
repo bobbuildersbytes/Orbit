@@ -67,11 +67,12 @@ async function getOrCreateAssistant(type) {
       
       RULES:
       1. detailed: Look at the "places" list. Pick valid, named places.
-      2. social: IF friends are nearby (low distance), prioritizing meeting them.
-      3. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
+      2. social: IF friends are nearby, ALWAYS prioritize meeting ONE specific friend per suggestion.
+      3. specific: Do not suggest "friends" as a group. Suggest "Meet Alice" or "Meet Bob".
+      4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       
       OUTPUT:
-      Write a natural language summary of your best ideas. Explain WHY you picked them.
+      Write a natural language summary of the location that does not contain the friend's name in it. For every suggestion, mentioning the SPECIFIC friend's ID if possible.
     `;
   } else {
     name = "Orbit JSON Formatter";
@@ -82,11 +83,18 @@ async function getOrCreateAssistant(type) {
       output format:
       Return a JSON object with a "suggestions" array.
       Each suggestion must have: type, label, detail, reason, actionLabel, and data.
+      
+      CRITICAL:
+      - If a suggestion involves a person, set "type": "activity_suggestion" (or "page_friend" if just saying hi).
+      - Put the friend's exact ID in data.userId.
+      - Ensure "label" explicitly names the person (e.g. "Dinner with Alice").
+      
       Example structure:
       "suggestions": [
-        "type": "page_friend" or "activity_suggestion",
-        "label": "Coffee...",
-        "data": "userId": "..."
+        "type": "activity_suggestion",
+        "label": "Coffee with Alice",
+        "detail": "At Starbucks...",
+        "data": "userId": "123", "venue": "..."
       ]
       
       RETURN ONLY JSON. NO MARKDOWN.
