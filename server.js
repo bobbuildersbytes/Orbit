@@ -12,7 +12,7 @@ const path = require("path");
 const User = require("./models/User");
 const PageEvent = require("./models/PageEvent");
 // const Presence = require("./models/Presence"); // Removed
-const nodemailer = require("nodemailer");
+const { MailerSend, EmailParams, Recipient } = require("mailersend");
 const { aiHookConfigured, callAIHook } = require("./utils/aiHook");
 const { fetchNearbyPlaces } = require("./utils/places");
 
@@ -35,28 +35,24 @@ if (!process.env.SESSION_SECRET) {
   );
 }
 
-// Initialize Email Service (optional)
-let transporter = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+// Initialize MailerSend Service
+const mailerSend = new MailerSend({
+  apiKey: process.env.MAILERSEND_API_KEY || "",
+});
+const EMAIL_ENABLED = !!process.env.MAILERSEND_API_KEY;
+const DEV_MODE_EMAIL = process.env.DEV_MODE_EMAIL === "true";
 
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error("Email transporter error:", error);
-    } else {
-      console.log("Email transporter ready:", success);
-    }
-  });
-} else {
-  console.warn(
-    "EMAIL_USER/EMAIL_PASS not set; pager emails are disabled (set them in .env to enable).",
-  );
+console.log("MailerSend initialized");
+console.log(
+  "API Key loaded:",
+  process.env.MAILERSEND_API_KEY ? "✅ Yes" : "❌ No",
+);
+console.log(
+  "Verified sender:",
+  process.env.MAILERSEND_FROM || "❌ Not set",
+);
+if (DEV_MODE_EMAIL) {
+  console.log("📧 Dev mode enabled: emails will be logged instead of sent.");
 }
 
 // Set view engine
@@ -329,6 +325,34 @@ app.post("/remove-friend", async (req, res) => {
   }
 });
 
+// Helper function to send emails via MailerSend
+async function sendEmail(emailContent) {
+  if (DEV_MODE_EMAIL) {
+    console.log("📧 [DEV MODE] Email would be sent:", emailContent);
+    return { success: true, devMode: true };
+  }
+
+  if (!EMAIL_ENABLED) {
+    throw new Error(
+      "MailerSend not configured. Set MAILERSEND_API_KEY in .env",
+    );
+  }
+
+  const fromEmail = process.env.MAILERSEND_FROM;
+  if (!fromEmail) {
+    throw new Error("MAILERSEND_FROM not set in .env");
+  }
+
+  const params = new EmailParams()
+    .setFrom({ email: fromEmail, name: "Orbit" })
+    .setTo([new Recipient(emailContent.to)])
+    .setReplyTo({ email: fromEmail })
+    .setSubject(emailContent.subject)
+    .setHtml(emailContent.html);
+
+  return await mailerSend.email.send(params);
+}
+
 app.post("/pager", async (req, res) => {
   const wantsJson = req.is("application/json");
   if (!req.isAuthenticated()) {
@@ -349,8 +373,7 @@ app.post("/pager", async (req, res) => {
       `Sending pager notification to ${friend.email} from ${pager.firstName} ${pager.lastName}`,
     );
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
+    const emailContent = {
       to: friend.email,
       subject: `${pager.firstName} ${pager.lastName} paged you!`,
       html: `
@@ -361,33 +384,19 @@ app.post("/pager", async (req, res) => {
         `,
     };
 
-    if (!transporter) {
-      if (wantsJson)
-        return res.status(503).json({
-          error:
-            "Pager emails are disabled (set EMAIL_USER/EMAIL_PASS in .env to enable).",
-        });
-      return res
-        .status(503)
-        .send(
-          "Pager emails are disabled (set EMAIL_USER/EMAIL_PASS in .env to enable).",
-        );
-    }
-
-    console.log("Mail options:", mailOptions);
-    const info = await transporter.sendMail(mailOptions);
+    const emailResponse = await sendEmail(emailContent);
     console.log(
       "Pager sent successfully to",
       friend.email,
       "Response:",
-      info.response,
+      emailResponse,
     );
 
     const pageEvent = new PageEvent({
       fromUser: req.user.id,
       toUser: friend._id,
       message: req.body.message,
-      meta: { emailResponse: info.response, toEmail: friend.email },
+      meta: { emailResponse: JSON.stringify(emailResponse), toEmail: friend.email },
     });
     await pageEvent.save();
 
