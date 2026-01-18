@@ -2145,6 +2145,117 @@
     background-clip: text !important;
     filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.5));
   }
+
+  .suggestion-card {
+    color: rgba(235, 242, 255, 0.9);
+  }
+
+  .suggestion-card .suggestion-label {
+    color: #f5f7ff;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.2px;
+  }
+
+  .suggestion-card .suggestion-detail {
+    color: rgba(230, 237, 255, 0.78);
+  }
+
+  .suggestion-card .muted {
+    color: rgba(255, 255, 255, 0.65) !important;
+  }
+
+  /* Suggestion modal */
+  .suggestion-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 13, 26, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+    backdrop-filter: blur(6px);
+    padding: 16px;
+  }
+
+  .suggestion-modal {
+    width: min(520px, 100%);
+    background: #0f172a;
+    border: 1px solid rgba(96, 165, 250, 0.35);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  .invite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .invite-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: #e7ecff;
+  }
+
+  .invite-detail {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .invite-close {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .invite-confidence {
+    margin: 12px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .invite-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0 18px;
+  }
+
+  .invite-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .invite-row:hover {
+    border-color: rgba(96, 165, 250, 0.45);
+    background: rgba(96, 165, 250, 0.05);
+  }
+
+  .invite-name {
+    color: #f5f7ff;
+    font-weight: 600;
+  }
+
+  .invite-meta {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+  }
+
+  .invite-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+  }
   
   .muted {
     color: rgba(255, 255, 255, 0.5) !important;

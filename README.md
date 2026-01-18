@@ -48,3 +48,13 @@ A simple web application built with Node.js, Express, HTML, CSS, and authenticat
 - AI endpoint contract (if you host one):
   - Input: `{ type: "page_suggestions", context: { ...see above... } }`
   - Output: `{ suggestions: [{ type: "page_friend", label: "Page Jane", reason: "Close by + high response rate", data: { userId: "<friendId>" } }] }`
+- Client-side AI hook (optional UI trigger): from a custom script you can call `suggestionsUI.suggestPage({ label, detail, data: { userId } })` to open the confirmation modal and let the user send a page. It will preselect the provided `userId` when available, otherwise offer the closest available friends. The UI never auto-sends; the user must click “Page”.
+
+## Amplitude identity and AI data tap
+
+- The browser now calls `amplitudeClient.identifyUser` on load, presence change, and after the first location update. Amplitude `user_id` is set to `user.uniqueId` (falls back to Mongo `_id`/email) and traits include `userMongoId`, `email`, `name`, `availability`, `isBusy`, `lastSeen`, `timeZone`, and `locationLat`/`locationLon` when shared.
+- Events already carry useful context: `presence_updated`/`page_clicked` include hour/day metadata; `location_sent` ships lat/lon; suggestion clicks are logged via `suggestion_clicked`.
+- To feed Amplitude history into your AI agent, query Amplitude by `user_id` (the Orbit `uniqueId`) using the Export API or a dashboard query, then pass that history into the AI hook alongside `/api/suggestions/context`. Example export call:  
+  `curl -u YOUR_API_KEY:YOUR_SECRET "https://amplitude.com/api/2/export?start=20240101T00&end=20240102T00&user_id=abcd1234"`  
+  The JSON rows include the user traits above plus event payloads you can hydrate into the AI input.
+- Suggested AI payload pattern: `{ type: "page_suggestions", context: <Orbit context>, amplitude: { userId: "<uniqueId>", events: [...], userProperties: {...} } }`. This lets the agent reason over location, venue types, time/day, availability patterns, and past responses in one place.

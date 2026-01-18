@@ -41,6 +41,50 @@ window.amplitudeClient = (function () {
     }
   }
 
+  function identifyUser(user = {}, opts = {}) {
+    if (!initialized || !window.amplitude) {
+      if (!warnedNotReady) {
+        console.warn("Amplitude not ready; cannot identify user yet.");
+        warnedNotReady = true;
+      }
+      return;
+    }
+
+    const userId =
+      user.uniqueId || user.id || user._id || user.email || "anonymous";
+    window.amplitude.setUserId(String(userId));
+
+    const identify = new window.amplitude.Identify();
+    const name =
+      user.name ||
+      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+      undefined;
+    const props = {
+      userUniqueId: user.uniqueId,
+      userMongoId: user._id || user.id,
+      email: user.email,
+      name,
+      availability: opts.available ?? user.available,
+      isBusy: opts.isBusy ?? user.isBusy,
+      lastSeen: user.lastSeen,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
+    const location = opts.location || user.location;
+    if (location && typeof location.lat === "number" && typeof location.lon === "number") {
+      props.locationLat = location.lat;
+      props.locationLon = location.lon;
+    }
+
+    Object.entries(props).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        identify.set(key, val);
+      }
+    });
+
+    window.amplitude.identify(identify);
+  }
+
   function track(event, properties = {}) {
     if (!initialized || !window.amplitude) {
       if (!warnedNotReady) {
@@ -52,5 +96,5 @@ window.amplitudeClient = (function () {
     window.amplitude.track(event, properties);
   }
 
-  return { initFromServer, track };
+  return { initFromServer, track, identifyUser };
 })();

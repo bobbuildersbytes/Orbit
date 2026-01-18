@@ -6,6 +6,7 @@ let pollTimer = null;
 let isAvailable = false;
 let isBusy = false;
 let geoWatchId = null;
+let lastIdentitySignature = null;
 
 // Orbit: Use window.orbitUser injected from EJS
 const currentUser = window.orbitUser;
@@ -47,6 +48,7 @@ async function fetchMe() {
       isBusy = !!data.presence.isBusy;
       syncAvailabilityUI(isAvailable);
       syncBusyUI();
+      updateAmplitudeIdentity();
     }
   } catch (err) {
     console.error(err);
@@ -207,7 +209,7 @@ function wireEvents() {
   });
 
   suggestionsUI.setHandlers({
-    onPage: (toUserId) => pageUser(toUserId),
+    onPage: (toUserId, message) => pageUser(toUserId, message),
     onAvailability: (available) => updatePresence(available, isBusy),
   });
 
@@ -322,6 +324,8 @@ async function updatePresence(available, busy) {
   // Track availability percentage periodically
   trackAvailabilityPattern();
 
+  updateAmplitudeIdentity();
+
   if (lastLat && lastLon) {
     console.log("Updating marker immediately:", {
       lastLat,
@@ -377,6 +381,7 @@ async function sendLocation() {
   if (lastLat && lastLon) {
     await pushLocation(lastLat, lastLon, 0);
     mapUI.updateMyMarker(lastLat, lastLon, isAvailable, isBusy);
+    updateAmplitudeIdentity({ location: { lat: lastLat, lon: lastLon } });
     return;
   }
 
@@ -388,6 +393,7 @@ async function sendLocation() {
       await pushLocation(latitude, longitude, accuracy);
       // await pushLocation(latitude, longitude, accuracy); // Duplicate call removed
       mapUI.updateMyMarker(latitude, longitude, isAvailable, isBusy);
+      updateAmplitudeIdentity({ location: { lat: latitude, lon: longitude } });
     },
     (err) => alert(err.message),
     { enableHighAccuracy: true, timeout: 20000 },
@@ -578,8 +584,11 @@ async function removeFriend(friendId, friendName) {
   }
 }
 
-async function pageUser(toUserId) {
-  const message = prompt("Optional message?") || undefined;
+async function pageUser(toUserId, presetMessage) {
+  const message =
+    typeof presetMessage === "string"
+      ? presetMessage
+      : prompt("Optional message?") || undefined;
   // This originally went to /api/page, we can keep it
   const res = await fetch("/pager", {
     // Reusing Orbit's existing endpoint or creating new
@@ -603,7 +612,9 @@ async function pageUser(toUserId) {
     hour: now.getHours(),
     dayOfWeek: now.getDay(), // 0 = Sunday, 6 = Saturday
     dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
-    timestamp: now.toISOString()
+    timestamp: now.toISOString(),
+    userLat: lastLat,
+    userLon: lastLon,
   });
 }
 
@@ -651,6 +662,30 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
+}
+
+function updateAmplitudeIdentity(extra = {}) {
+  if (!currentUser || !window.amplitudeClient || !amplitudeClient.identifyUser)
+    return;
+
+  const location =
+    extra.location ||
+    (lastLat && lastLon ? { lat: lastLat, lon: lastLon } : undefined);
+
+  const signature = JSON.stringify({
+    available: isAvailable,
+    isBusy,
+    location,
+  });
+
+  if (signature === lastIdentitySignature) return;
+  lastIdentitySignature = signature;
+
+  amplitudeClient.identifyUser(currentUser, {
+    available: isAvailable,
+    isBusy,
+    location,
+  });
 }
 
 // Track availability patterns over time
