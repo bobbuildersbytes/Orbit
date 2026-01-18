@@ -203,7 +203,7 @@ window.suggestionsUI = (function () {
                   <div class="invite-name">${displayName(f)}</div>
                   <div class="invite-meta">${f.distLabel}${
               f.isBusy ? " • busy" : ""
-            }</div>
+            }${formatLastSeenText(f.lastSeenMinutesAgo)}</div>
                 </div>
                 <span class="invite-confidence-pill">${Math.round(
                   f.conf * 100,
@@ -391,6 +391,16 @@ window.suggestionsUI = (function () {
       f._id ||
       "Unknown friend"
     );
+  }
+
+  function formatLastSeenText(minutesAgo) {
+    if (!Number.isFinite(minutesAgo)) return "";
+    if (minutesAgo < 1) return " • seen just now";
+    if (minutesAgo < 60) return ` • seen ${Math.round(minutesAgo)}m ago`;
+    const hours = Math.floor(minutesAgo / 60);
+    if (hours < 24) return ` • seen ${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return ` • seen ${days}d ago`;
   }
 
   function createInviteModal() {

@@ -501,6 +501,11 @@ function renderUsers(users) {
     const generateInnerHTML = (user, busy, distance) => `
       <div><strong>${user.name || user.email}</strong>${busy ? ' <span class="busy-badge">🔴 Busy</span>' : ""}${distance}</div>
       <div class="muted">${user.email}</div>
+      ${
+        user.lastSeen
+          ? `<div class="muted">${formatLastSeen(user.lastSeen)}</div>`
+          : ""
+      }
       <div class="actions">
         <button class="small" data-action="center">Center</button>
         ${
@@ -664,6 +669,21 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
+}
+
+function formatLastSeen(lastSeen) {
+  const ts = new Date(lastSeen);
+  if (Number.isNaN(ts.getTime())) return "Last seen: unknown";
+  const minutes = Math.max(
+    0,
+    Math.round((Date.now() - ts.getTime()) / 60000),
+  );
+  if (minutes < 1) return "Last seen: just now";
+  if (minutes < 60) return `Last seen: ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Last seen: ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Last seen: ${days}d ago`;
 }
 
 function updateAmplitudeIdentity(extra = {}) {
