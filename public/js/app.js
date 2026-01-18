@@ -32,7 +32,7 @@ async function bootstrap() {
     }
 
     startPolling();
-    // suggestionsUI.fetchSuggestions(); // Uncomment when suggestions API is ready
+    suggestionsUI.fetchSuggestions();
   }
 }
 
@@ -97,8 +97,39 @@ function wireEvents() {
   // Desktop Sidebar Navigation
   const desktopNavIcons = document.querySelectorAll(".nav-icon");
   const sidebarTitle = document.getElementById("sidebar-title");
-  const activitiesPanel = document.getElementById("activities-panel");
-  const profilePanel = document.getElementById("profile-panel");
+
+  // Generic Panel Switching Logic
+  const panels = document.querySelectorAll(".panel-section");
+
+  function switchPanel(targetId) {
+    // Hide all panels
+    panels.forEach((p) => p.classList.add("hidden"));
+
+    // Show target
+    const targetPanel = document.getElementById(targetId);
+    if (targetPanel) {
+      targetPanel.classList.remove("hidden");
+    }
+
+    // Update Title based on target
+    if (sidebarTitle) {
+      if (targetId === "activities-panel")
+        sidebarTitle.textContent = "Activities";
+      else if (targetId === "profile-panel")
+        sidebarTitle.textContent = "Profile & Settings";
+      else if (targetId === "suggestions-panel") {
+        sidebarTitle.textContent = "AI Suggestions";
+        suggestionsUI.fetchSuggestions(true); // Force fetch on tab switch
+      }
+    }
+  }
+
+  // Track active panel for polling
+  function isSuggestionsActive() {
+    const p = document.getElementById("suggestions-panel");
+    return p && !p.classList.contains("hidden");
+  }
+
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
@@ -111,6 +142,7 @@ function wireEvents() {
       window.location.href = "/logout";
     });
   }
+
   desktopNavIcons.forEach((btn) => {
     btn.addEventListener("click", () => {
       // 1. Update Active State
@@ -124,15 +156,7 @@ function wireEvents() {
 
       // 3. Switch Content
       const targetId = btn.dataset.target;
-      if (targetId === "activities-panel") {
-        activitiesPanel.classList.remove("hidden");
-        profilePanel.classList.add("hidden");
-        if (sidebarTitle) sidebarTitle.textContent = "Activities";
-      } else if (targetId === "profile-panel") {
-        profilePanel.classList.remove("hidden");
-        activitiesPanel.classList.add("hidden");
-        if (sidebarTitle) sidebarTitle.textContent = "Profile & Settings";
-      }
+      switchPanel(targetId);
     });
   });
 
@@ -147,8 +171,12 @@ function wireEvents() {
       // If clicking already active tab -> Close (Toggle off)
       if (isActive) {
         sidebar.classList.remove("mobile-open");
-        sidebar.classList.remove("show-activities");
-        sidebar.classList.remove("show-profile");
+        // Clear specific classes
+        sidebar.classList.remove(
+          "show-activities",
+          "show-profile",
+          "show-suggestions",
+        );
         return;
       }
 
@@ -156,15 +184,25 @@ function wireEvents() {
       btn.classList.add("active");
       const target = btn.dataset.target;
 
-      if (target === "activities-panel") {
-        sidebar.classList.add("mobile-open");
+      sidebar.classList.add("mobile-open");
+
+      // Reset specific classes
+      sidebar.classList.remove(
+        "show-activities",
+        "show-profile",
+        "show-suggestions",
+      );
+
+      // Add specific class for potential CSS styling hooks
+      if (target === "activities-panel")
         sidebar.classList.add("show-activities");
-        sidebar.classList.remove("show-profile");
-      } else if (target === "profile-panel") {
-        sidebar.classList.add("mobile-open");
+      else if (target === "profile-panel")
         sidebar.classList.add("show-profile");
-        sidebar.classList.remove("show-activities");
-      }
+      else if (target === "suggestions-panel")
+        sidebar.classList.add("show-suggestions");
+
+      // Also switch the inner panel content so it matches desktop logic
+      switchPanel(target);
     });
   });
 
@@ -172,6 +210,13 @@ function wireEvents() {
     onPage: (toUserId) => pageUser(toUserId),
     onAvailability: (available) => updatePresence(available, isBusy),
   });
+
+  const refreshBtn = document.getElementById("refresh-suggestions-btn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      suggestionsUI.fetchSuggestions(true); // Force refresh
+    });
+  }
 
   startLocationWatch();
 
@@ -368,7 +413,6 @@ function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   const poll = () => {
     loadPresence();
-    // suggestionsUI.fetchSuggestions();
   };
   poll();
   pollTimer = setInterval(poll, 5000);
