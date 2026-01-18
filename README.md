@@ -10,7 +10,7 @@ Orbit is a social discovery tool designed to eliminate the difficulty of plannin
 
 **Tech Stack**
 Frontend
-- HTML5 & CSS3: For complex animations and layered visual effects.
+- HTML & CSS: For complex animations and layered visual effects.
 - JavaScript: Powering the interactive UI and real-time updates.
 
 Backend
