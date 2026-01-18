@@ -461,8 +461,44 @@ window.suggestionsUI = (function () {
 
   async function execute(item, cardElement = null) {
     console.log("Executing suggestion:", item);
-    // Suggestion decision is now tracked comprehensively in app.js -> trackSuggestionDecision
-    // Removed redundant "suggestion_clicked" event to consolidate analytics.
+
+    // Track click immediately using Amplitude if available
+    if (window.amplitude) {
+      const now = new Date();
+      // Determine action type
+      let actionType = "other";
+      if (item.type === "page_friend") actionType = "page";
+      else if (item.type === "activity_suggestion") actionType = "invite";
+
+      const eventProperties = {
+        // Suggestion details
+        suggestion_type: item.type,
+        suggestion_label: item.label,
+        suggestion_detail: item.detail,
+        suggestion_reason: item.reason,
+
+        // Action info
+        action_label: item.actionLabel,
+        action_type: actionType,
+
+        // Temporal data
+        timestamp: now.toISOString(),
+        hour: now.getHours(),
+        day: now.getDay(), // 0-6
+        is_weekend: now.getDay() === 0 || now.getDay() === 6,
+
+        // Location
+        user_lat: window.orbitUser?.location?.lat,
+        user_lon: window.orbitUser?.location?.lon,
+
+        // User context
+        user_id: window.orbitUser?.id || window.orbitUser?._id,
+        user_email: window.orbitUser?.email,
+      };
+      window.amplitude
+        .getInstance()
+        .logEvent("suggestion_clicked", eventProperties);
+    }
 
     if (item.type === "page_friend") {
       const friend = lookupFriendById(item.data.userId); // page_friend remains single for now as per model
