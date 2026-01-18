@@ -133,7 +133,7 @@ window.suggestionsUI = (function () {
       const declineBtn = el.querySelector(".decline-btn");
       const labelEl = el.querySelector(".suggestion-label");
 
-      actionBtn.addEventListener("click", () => execute(item));
+      actionBtn.addEventListener("click", () => execute(item, el));
 
       if (editBtn) {
         editBtn.addEventListener("click", () =>
@@ -176,6 +176,13 @@ window.suggestionsUI = (function () {
         suggestionConfidence = Math.max(0.2, suggestionConfidence - 0.15);
         // Optional: Send feedback to API that this was declined
         console.log("Declined suggestion:", item);
+
+        // Track Reject
+        const relevantIds =
+          item.data?.userIds || (item.data?.userId ? [item.data.userId] : []);
+        if (window.trackSuggestionDecision) {
+          window.trackSuggestionDecision(item, "Reject", relevantIds);
+        }
       });
 
       list.appendChild(el);
@@ -452,25 +459,14 @@ window.suggestionsUI = (function () {
     cancelBtn.addEventListener("click", close);
   }
 
-  function execute(item) {
+  async function execute(item, cardElement = null) {
     console.log("Executing suggestion:", item);
-    const now = new Date();
-    const location = context?.user?.location;
-    amplitudeClient.track("suggestion_clicked", {
-      type: item.type,
-      label: item.label,
-      detail: item.detail,
-      hour: now.getHours(),
-      dayOfWeek: now.getDay(),
-      dayName: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][now.getDay()],
-      timestamp: now.toISOString(),
-      userLat: location?.lat,
-      userLon: location?.lon,
-    });
+    // Suggestion decision is now tracked comprehensively in app.js -> trackSuggestionDecision
+    // Removed redundant "suggestion_clicked" event to consolidate analytics.
 
     if (item.type === "page_friend") {
       const friend = lookupFriendById(item.data.userId); // page_friend remains single for now as per model
-      showInviteUI(item, friend ? [friend] : []);
+      showInviteUI(item, friend ? [friend] : [], cardElement);
     } else if (item.type === "activity_suggestion") {
       // Logic for Multi-Paging
       const userIds =
@@ -480,12 +476,23 @@ window.suggestionsUI = (function () {
         // If 1 or more friends selected, page them all directly without showing picker again
         // unless userIds is empty.
         const inviteMessage = buildInviteMessage(item);
-        userIds.forEach((uid) => {
-          const friend = lookupFriendById(uid);
-          if (friend) {
-            handlers.onPage(friend.id || friend._id, inviteMessage);
-          }
-        });
+        console.log("DEBUG: Paging friends", userIds);
+
+        await Promise.all(
+          userIds.map((uid) => {
+            const friend = lookupFriendById(uid);
+            if (friend) {
+              return handlers.onPage(friend.id || friend._id, inviteMessage);
+            }
+            return Promise.resolve();
+          }),
+        );
+
+        console.log("DEBUG: Tracking decision Accept");
+        if (window.trackSuggestionDecision) {
+          window.trackSuggestionDecision(item, "Accept", userIds);
+        }
+        if (cardElement) cardElement.remove();
         return;
       }
 
@@ -494,7 +501,18 @@ window.suggestionsUI = (function () {
       if (candidates.length > 0) {
         const topCandidate = candidates[0];
         const inviteMessage = buildInviteMessage(item);
-        handlers.onPage(topCandidate.id || topCandidate._id, inviteMessage);
+        console.log("DEBUG: Paging top candidate", topCandidate);
+        await handlers.onPage(
+          topCandidate.id || topCandidate._id,
+          inviteMessage,
+        );
+
+        if (window.trackSuggestionDecision) {
+          window.trackSuggestionDecision(item, "Accept", [
+            topCandidate.id || topCandidate._id,
+          ]);
+        }
+        if (cardElement) cardElement.remove();
       } else {
         alert("No available friends found to invite.");
       }
@@ -531,7 +549,7 @@ window.suggestionsUI = (function () {
     return `Want to meet at "${item.label}"?`;
   }
 
-  function showInviteUI(item, candidates) {
+  function showInviteUI(item, candidates, cardElement = null) {
     if (!modal || !modal.backdrop) return;
 
     const withMeta = candidates.map((f, idx) => {
@@ -638,12 +656,22 @@ window.suggestionsUI = (function () {
     sendBtn?.addEventListener("click", () => {
       if (!selectedIds.size) return;
       const inviteMessage = buildInviteMessage(item);
+
+      // We can't easily await here since it's an event handler, but modal closing is fine.
+      // But let's try to track ensuring requests fire.
+
       selectedIds.forEach((id) => {
         const friend = candidates.find((c) => c.id === id);
         if (friend) handlers.onPage(friend.id, inviteMessage);
       });
       suggestionConfidence = Math.max(0.2, suggestionConfidence - 0.05);
+
+      if (window.trackSuggestionDecision) {
+        window.trackSuggestionDecision(item, "Accept", Array.from(selectedIds));
+      }
+
       closeModal();
+      if (cardElement) cardElement.remove();
     });
 
     renderMiniMaps(withMeta);
@@ -674,7 +702,9 @@ window.suggestionsUI = (function () {
 
   function lookupFriendById(id) {
     if (!context?.friends) return null;
-    return context.friends.find((f) => f.id === id || f._id === id);
+    return context.friends.find(
+      (f) => f.id === id || f._id === id || f.uniqueId === id,
+    );
   }
 
   function computeFriendConfidence(item, friend) {

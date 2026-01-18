@@ -68,6 +68,8 @@ async function getOrCreateAssistant(type) {
       RULES:
       1. detailed: Look at the "places" list. Pick valid, named places.
       2. social: IF friends are nearby, ALWAYS prioritize meeting ONE specific friend per suggestion.
+         - Prioritize friends with LOWER "distanceKm".
+         - Mention the distance in the reasoning.
       3. specific: Do not suggest "friends" as a group. Suggest "Meet Alice" or "Meet Bob".
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       

@@ -467,6 +467,14 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
+app.get("/api/config", (req, res) => {
+  if (!req.isAuthenticated())
+    return res.status(401).json({ error: "Not authenticated" });
+  res.json({
+    amplitudeApiKey: process.env.AMPLITUDE_API_KEY,
+  });
+});
+
 app.get("/api/presence", async (req, res) => {
   try {
     if (!req.user) return res.json({ presences: [] });
@@ -481,37 +489,37 @@ app.get("/api/presence", async (req, res) => {
     // but client might expect only available ones.
     // The UI normally filters, but let's return them.
 
-  const friends = await User.find({
-    _id: { $in: friendIds },
-  }).select(
-    "firstName lastName email lat lon available isBusy uniqueId profilePicture lastSeen",
-  );
+    const friends = await User.find({
+      _id: { $in: friendIds },
+    }).select(
+      "firstName lastName email lat lon available isBusy uniqueId profilePicture lastSeen",
+    );
 
-  const mapped = friends.map((f) => ({
-    userId: f._id,
-    name: `${f.firstName} ${f.lastName}`,
-    email: f.email,
-    lat: f.lat,
-    lon: f.lon,
-    isBusy: f.isBusy,
-    available: f.available,
-    profilePicture: f.profilePicture,
-    lastSeen: f.lastSeen,
-  }));
+    const mapped = friends.map((f) => ({
+      userId: f._id,
+      name: `${f.firstName} ${f.lastName}`,
+      email: f.email,
+      lat: f.lat,
+      lon: f.lon,
+      isBusy: f.isBusy,
+      available: f.available,
+      profilePicture: f.profilePicture,
+      lastSeen: f.lastSeen,
+    }));
 
     // Add current user to the presences list
-  const userPresence = {
-    userId: currentUser._id,
-    name: `${currentUser.firstName} ${currentUser.lastName}`,
-    email: currentUser.email,
-    lat: currentUser.lat,
-    lon: currentUser.lon,
-    isBusy: currentUser.isBusy,
-    available: currentUser.available,
-    profilePicture: currentUser.profilePicture,
-    lastSeen: currentUser.lastSeen,
-    isCurrentUser: true,
-  };
+    const userPresence = {
+      userId: currentUser._id,
+      name: `${currentUser.firstName} ${currentUser.lastName}`,
+      email: currentUser.email,
+      lat: currentUser.lat,
+      lon: currentUser.lon,
+      isBusy: currentUser.isBusy,
+      available: currentUser.available,
+      profilePicture: currentUser.profilePicture,
+      lastSeen: currentUser.lastSeen,
+      isCurrentUser: true,
+    };
 
     res.json({ presences: [userPresence, ...mapped] });
   } catch (err) {
