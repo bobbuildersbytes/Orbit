@@ -71,10 +71,12 @@ async function getOrCreateAssistant(type) {
          - Prioritize friends with LOWER "distanceKm".
          - Mention the distance in the reasoning.
       3. specific: Do not suggest "friends" as a group. Suggest "Meet Alice" or "Meet Bob".
+         - You MUST identify the friend by their unique "id" or "_id" from the JSON context.
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
       
       OUTPUT:
-      Write a natural language summary of the location that does not contain the friend's name in it. For every suggestion, mention the SPECIFIC friend's ID if possible.
+      Write a natural language summary of the location.
+      CRITICAL: For every suggestion, you MUST explicitly mention the Friend's ID in parentheses like this: (FriendID: 123abc456).
     `;
   } else {
     name = "Orbit JSON Formatter";
@@ -84,7 +86,6 @@ async function getOrCreateAssistant(type) {
       
       output format:
       Return a JSON object with a "suggestions" array.
-      Each suggestion must have: type, label, detail, reason, actionLabel, and data.
       
       CRITICAL FORMATTING RULES:
       1. Label (Title): MUST be in the format "[Activity] at [Place] with [Person]".
@@ -95,7 +96,7 @@ async function getOrCreateAssistant(type) {
          Example: "Invite Alice".
       5. Data: 
          - "type": "activity_suggestion"
-         - "userId": The friend's exact ID.
+         - "userId": EXTRACT the exact alphanumeric string from the input (e.g. "FriendID: ..."). This MUST be the database ID (e.g. "65a1b2c3d4e5f6..."), NOT a name like "Alice". If no ID is found, use null.
          - "venue": The name of the place.
 
       Example structure:
@@ -106,7 +107,7 @@ async function getOrCreateAssistant(type) {
           "detail": "A cozy cafe with great espresso...",
           "reason": "It is close to both of you.",
           "actionLabel": "Invite Alice",
-          "data": {{ "userId": "123", "venue": "Tyms" }}
+          "data": {{ "userId": "651a2b3c4d5e...", "venue": "Tyms" }}
         }}
       ]
       

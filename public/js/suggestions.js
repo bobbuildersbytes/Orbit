@@ -72,7 +72,10 @@ window.suggestionsUI = (function () {
       // Determine icon based on type
       // Determine icon based on type
       // Determine icon based on type
-      const icon = item.type === "activity_suggestion" ? "📍" : "👋";
+      const icon =
+        item.type === "activity_suggestion"
+          ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
+          : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>';
       let actionLabel = item.actionLabel || "Go";
 
       // Determine users involved
@@ -455,8 +458,44 @@ window.suggestionsUI = (function () {
 
   async function execute(item, cardElement = null) {
     console.log("Executing suggestion:", item);
-    // Suggestion decision is now tracked comprehensively in app.js -> trackSuggestionDecision
-    // Removed redundant "suggestion_clicked" event to consolidate analytics.
+
+    // Track click immediately using Amplitude if available
+    if (window.amplitude) {
+      const now = new Date();
+      // Determine action type
+      let actionType = "other";
+      if (item.type === "page_friend") actionType = "page";
+      else if (item.type === "activity_suggestion") actionType = "invite";
+
+      const eventProperties = {
+        // Suggestion details
+        suggestion_type: item.type,
+        suggestion_label: item.label,
+        suggestion_detail: item.detail,
+        suggestion_reason: item.reason,
+
+        // Action info
+        action_label: item.actionLabel,
+        action_type: actionType,
+
+        // Temporal data
+        timestamp: now.toISOString(),
+        hour: now.getHours(),
+        day: now.getDay(), // 0-6
+        is_weekend: now.getDay() === 0 || now.getDay() === 6,
+
+        // Location
+        user_lat: window.orbitUser?.location?.lat,
+        user_lon: window.orbitUser?.location?.lon,
+
+        // User context
+        user_id: window.orbitUser?.id || window.orbitUser?._id,
+        user_email: window.orbitUser?.email,
+      };
+      window.amplitude
+        .getInstance()
+        .logEvent("suggestion_clicked", eventProperties);
+    }
 
     if (item.type === "page_friend") {
       const friend = lookupFriendById(item.data.userId); // page_friend remains single for now as per model
