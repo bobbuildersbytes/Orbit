@@ -11,25 +11,50 @@ function aiHookConfigured() {
 }
 
 // Helper for HTTP requests to Backboard
-async function backboardRequest(endpoint, method, body = null) {
+async function backboardRequest(
+  endpoint,
+  method,
+  body = null,
+  isFormData = false,
+) {
   const url = `${process.env.AI_API_URL}${endpoint}`;
   const headers = {
-    "Content-Type": "application/json",
     "X-API-Key": process.env.AI_API_KEY,
   };
 
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  } else {
+    headers["Content-Type"] = "application/x-www-form-urlencoded";
+  }
+
   const options = { method, headers };
-  if (body) options.body = JSON.stringify(body);
+
+  if (body) {
+    if (isFormData) {
+      options.body = new URLSearchParams(body).toString();
+    } else {
+      options.body = JSON.stringify(body);
+    }
+  }
 
   const res = await fetch(url, options);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Backboard API error (${res.status}): ${text}`);
   }
-  return res.json();
+
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Backboard Response Parse Error. Raw Body:", text);
+    throw new Error(`Failed to parse Backboard response: ${err.message}`);
+  }
 }
 
 async function getOrCreateAssistant(type) {
+  // ... (unchanged part of getOrCreateAssistant logic until the request)
   if (assistantCache[type]) return assistantCache[type];
 
   let name, prompt;
@@ -55,33 +80,24 @@ async function getOrCreateAssistant(type) {
       Take the provided social plan/summary and convert it into a strict JSON object.
       
       output format:
-      {
-        "suggestions": [
-          {
-            "type": "page_friend" | "activity_suggestion",
-            "label": "Short Title",
-            "detail": "Time/Place details",
-            "reason": "Why this was suggested",
-            "actionLabel": "Button Label",
-            "data": { "userId": "..." } OR { "activity": "...", "location": "..." }
-          }
-        ]
-      }
+      Return a JSON object with a "suggestions" array.
+      Each suggestion must have: type, label, detail, reason, actionLabel, and data.
+      Example structure:
+      "suggestions": [
+        "type": "page_friend" or "activity_suggestion",
+        "label": "Coffee...",
+        "data": "userId": "..."
+      ]
       
       RETURN ONLY JSON. NO MARKDOWN.
     `;
   }
 
-  // Select best model for the task
-  const model =
-    type === "processor" ? "anthropic/claude-3.5-sonnet" : "openai/gpt-4o";
-
   // Create new assistant
-  console.log(`Creating Backboard assistant: ${name} (Model: ${model})...`);
+  console.log(`Creating Backboard assistant: ${name} (Default Model)...`);
   const data = await backboardRequest("/assistants", "POST", {
     name: name,
     system_prompt: prompt,
-    model: model,
   });
 
   assistantCache[type] = data.assistant_id;
@@ -89,7 +105,7 @@ async function getOrCreateAssistant(type) {
 }
 
 async function runThread(assistantId, userContent) {
-  // 1. Create Thread
+  // 1. Create Thread (JSON)
   const threadRes = await backboardRequest(
     `/assistants/${assistantId}/threads`,
     "POST",
@@ -97,7 +113,7 @@ async function runThread(assistantId, userContent) {
   );
   const threadId = threadRes.thread_id;
 
-  // 2. Send Message
+  // 2. Send Message (Form Data)
   const msgRes = await backboardRequest(
     `/threads/${threadId}/messages`,
     "POST",
@@ -106,9 +122,8 @@ async function runThread(assistantId, userContent) {
         typeof userContent === "string"
           ? userContent
           : JSON.stringify(userContent),
-      stream: "false",
-      memory: "Auto", // Per documentation/example
     },
+    true, // isFormData = true
   );
 
   return msgRes.content;
@@ -132,11 +147,19 @@ async function callAIHook(payload) {
     const formatterId = await getOrCreateAssistant("formatter");
     const jsonResponse = await runThread(formatterId, processorResponse);
 
+    console.log("AI Raw Output:", jsonResponse);
+
     // Clean and Parse
-    const cleaned = jsonResponse
+    let cleaned = jsonResponse
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
+
+    // Attempt to find the JSON object if there's extra text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
 
     return JSON.parse(cleaned);
   } catch (err) {
