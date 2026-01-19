@@ -11,7 +11,7 @@ const suggestionsCache = new Map(); // Key: userId, Value: { suggestions, contex
 
 const PLACE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const AMP_CACHE_TTL = 60 * 1000; // 1 minute
-const SUGGESTION_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (Aggressive caching for AI)
+const SUGGESTION_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (Stable cache until manual refresh)
 const EARTH_RADIUS_KM = 6371;
 
 function computeDistanceKm(lat1, lon1, lat2, lon2) {
@@ -198,6 +198,9 @@ async function getSuggestions(user, forceRefresh = false) {
         fromCache: true,
       };
     }
+  } else {
+    // Explicitly invalidate
+    suggestionsCache.delete(userId);
   }
 
   // 2. Generate New

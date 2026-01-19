@@ -126,43 +126,65 @@ async function fetchNearbyPlaces(lat, lon, radius = 1000) {
   `;
 
   try {
-    const url = "https://overpass-api.de/api/interpreter";
+    const OVERPASS_INSTANCES = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    ];
+
     const body = "data=" + encodeURIComponent(query);
 
-    console.log("Fetching places from Overpass (Broad Query)...");
-    const res = await fetch(url, {
-      method: "POST",
-      body: body,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "OrbitApp/1.0 (uofthacks; contact@example.com)",
-        Referer: "https://orbit-app.example.com",
-      },
-    });
+    for (const url of OVERPASS_INSTANCES) {
+      try {
+        console.log(`Fetching places from Overpass (${url})...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 65000); // 65s local timeout (slightly > query timeout)
 
-    if (!res.ok) {
-      console.warn("Overpass API error:", res.status);
-      return [];
+        const res = await fetch(url, {
+          method: "POST",
+          body: body,
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "OrbitApp/1.0 (uofthacks; contact@example.com)",
+            Referer: "https://orbit-app.example.com",
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          console.warn(`Overpass error from ${url}: ${res.status}`);
+          if (res.status === 504 || res.status === 502 || res.status === 429) {
+            continue; // Try next mirror
+          }
+          break; // Stop on other errors (e.g. 400 Bad Request)
+        }
+
+        const data = await res.json();
+        const rawElements = data.elements || [];
+        console.log(
+          `Fetched ${rawElements.length} raw items from Overpass. Filtering...`,
+        );
+
+        // Pass to local model/filter
+        const places = filterPlaces(rawElements);
+        console.log(`Model retained ${places.length} places.`);
+
+        // 2. Set Cache
+        placeCache.set(cacheKey, { timestamp: Date.now(), data: places });
+        if (placeCache.size > 100) placeCache.clear();
+
+        return places; // Success!
+      } catch (err) {
+        console.error(`Error fetching from ${url}:`, err.message);
+        // Continue to next mirror on network error
+      }
     }
 
-    const data = await res.json();
-    const rawElements = data.elements || [];
-    console.log(
-      `Fetched ${rawElements.length} raw items from Overpass. Filtering...`,
-    );
-
-    // Pass to local model/filter
-    const places = filterPlaces(rawElements);
-    console.log(`Model retained ${places.length} places.`);
-
-    // 2. Set Cache
-    placeCache.set(cacheKey, { timestamp: Date.now(), data: places });
-    // Prune cache if too big? (Optional, maybe just let it grow for MVP)
-    if (placeCache.size > 100) placeCache.clear(); // Simple purge
-
-    return places;
+    console.error("All Overpass instances failed.");
+    return [];
   } catch (err) {
-    console.error("Error fetching places:", err.message);
+    console.error("Fatal error in place fetch:", err.message);
     return [];
   }
 }

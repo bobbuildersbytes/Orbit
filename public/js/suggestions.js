@@ -37,9 +37,20 @@ window.suggestionsUI = (function () {
     isFetching = true;
     lastFetchTime = now;
 
-    // Show loading state if forcing (e.g. initial open or manual refresh)
-    // Show loading state if forcing (e.g. initial open or manual refresh)
-    if (force && list) {
+    // Show loading state if forcing OR if the list is clearly empty (initial load)
+    // Also treat "initializing..." message as empty
+    const hasInitializingMsg =
+      list &&
+      list.querySelector(".muted") &&
+      list.querySelector(".muted").textContent.includes("initializing");
+    const isListEmpty =
+      list && (list.children.length === 0 || hasInitializingMsg);
+    const isListError =
+      list &&
+      list.querySelector(".muted") &&
+      list.querySelector(".muted").textContent.includes("Failed");
+
+    if ((force || isListEmpty || isListError) && list) {
       // Render Skeletons
       let skeletons = "";
       for (let i = 0; i < 3; i++) {
@@ -59,7 +70,10 @@ window.suggestionsUI = (function () {
     }
 
     try {
-      const res = await fetch("/api/suggestions/context");
+      const url = force
+        ? "/api/suggestions/context?refresh=true"
+        : "/api/suggestions/context";
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Fetch failed");
       const data = await res.json();
       context = data.context || null;

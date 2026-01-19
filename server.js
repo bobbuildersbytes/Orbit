@@ -72,8 +72,7 @@ mongoose
   .connect(mongoUri)
   .then(() => {
     console.log("MongoDB connected");
-    // Trigger AI generation on startup
-    suggestionEngine.prefetchAll();
+    // suggestionEngine.prefetchAll(); // Disabled per user request (don't generate for all friends) AI generation on startup
   })
   .catch((err) => console.log(err));
 
@@ -549,14 +548,18 @@ app.post("/api/availability", async (req, res) => {
     const { available, isBusy } = req.body;
 
     // Update USER directly
-    const user = await User.findById(req.user.id);
+    // Use atomic update to prevent VersionError race conditions with location updates
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        available,
+        isBusy,
+        lastSeen: Date.now(),
+      },
+      { new: true },
+    );
+
     if (!user) return res.status(404).json({ error: "User not found" });
-
-    user.available = available;
-    user.isBusy = isBusy;
-    user.lastSeen = Date.now();
-
-    await user.save();
 
     res.json({
       success: true,
@@ -574,17 +577,14 @@ app.post("/api/location", async (req, res) => {
   try {
     const { lat, lon, accuracy } = req.body;
 
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    // Use atomic update to prevent VersionError race conditions
+    await User.findByIdAndUpdate(req.user.id, {
+      lat,
+      lon,
+      accuracy,
+      lastSeen: Date.now(),
+    });
 
-    user.lat = lat;
-    user.lon = lon;
-    user.accuracy = accuracy;
-    user.lastSeen = Date.now();
-    // If we receive location, imply available? Or keep explicit?
-    // Usually explicit toggle is better.
-
-    await user.save();
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -616,8 +616,10 @@ app.get("/api/suggestions/context", async (req, res) => {
   if (!req.isAuthenticated())
     return res.status(401).json({ error: "Login required" });
   try {
+    const forceRefresh = req.query.refresh === "true";
     const { suggestions, context } = await suggestionEngine.getSuggestions(
       req.user,
+      forceRefresh,
     );
     res.json({ suggestions, context });
   } catch (err) {

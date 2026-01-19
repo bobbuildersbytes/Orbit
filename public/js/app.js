@@ -175,7 +175,9 @@ function wireEvents() {
         sidebarTitle.textContent = "Profile & Settings";
       else if (targetId === "suggestions-panel") {
         sidebarTitle.textContent = "AI Suggestions";
-        suggestionsUI.fetchSuggestions(true); // Force fetch on tab switch
+        if (suggestionsUI && suggestionsUI.fetchSuggestions) {
+          suggestionsUI.fetchSuggestions(false); // Use cache on tab switch
+        }
       }
     }
   }

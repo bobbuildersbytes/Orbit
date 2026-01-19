@@ -66,7 +66,7 @@ async function getOrCreateAssistant(type) {
       Identify 3-5 specific, high-quality opportunities for the user to socialize or do an activity.
       
       RULES:
-      1. detailed: Look at the "places" list. Pick valid, named places.
+      1. detailed: Look at the "places" list provided in the JSON. You MUST pick a valid place from this list. DO NOT hallucinate a place. DO NOT make it a general experience (Visit a nearby coffee shop)
       2. social: IF friends are nearby, prioritize meeting ONE specific friend per suggestion.
          - Prioritize friends with LOWER "distance Km".
          - Mention the distance in the reasoning.
@@ -76,6 +76,7 @@ async function getOrCreateAssistant(type) {
          - You MUST identify the friend by their unique "id" or "_id" from the JSON context.
          - If suggesting solo, do not mention a friend.
       4. time-aware: Notice the time. Suggest lunch for lunch, bars for night, etc.
+      5. variety: Don't just suggest 
       
       USER HISTORY (Recent Decisions):
       The input JSON context will contain a "history" array of recent suggestions and my decisions (Accept/Reject).
@@ -86,7 +87,8 @@ async function getOrCreateAssistant(type) {
       Write a natural language summary of the location.
       CRITICAL RULES for OUTPUT:
       1. For every suggestion with a friend, you MUST explicitly mention the Friend's ID: (FriendID: 123abc456).
-      2. You MUST explicitly mention the exact latitude and longitude of the place from the context tokens: (Location: 43.6532, -79.3832).
+      2. You MUST explicitly mention the EXACT latitude and longitude of the place as they appear in the "places" list: (Location: 43.6532, -79.3832).
+      3. If you cannot find a place with coordinates in the list, DO NOT suggest it.
      `;
   } else {
     name = "Orbit JSON Formatter";
@@ -110,7 +112,7 @@ async function getOrCreateAssistant(type) {
          - "type": "activity_suggestion"
          - "userId": EXTRACT the exact alphanumeric string from the input (e.g. "FriendID: ..."). This MUST be the database ID. If no ID is found (solo activity), use null.
          - "venue": The name of the place.
-         - "location": EXTRACT the coordinates from the text e.g. "(Location: lat, lon)". Return object {{ "lat": number, "lon": number }}.
+         - "location": EXTRACT the coordinates from the text e.g. "(Location: lat, lon)". Return object {{ "lat": number, "lon": number }}. IF NO COORDINATES ARE FOUND, RETURN NULL (but the previous step should have ensured they exist).
 
       Example structure:
       "suggestions": [
